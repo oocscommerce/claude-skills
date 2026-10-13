@@ -1,0 +1,16 @@
+{
+  "name": "oocscommerce",
+  "description": "Claude Code plugins from OOCS Commerce",
+  "owner": {
+    "name": "OOCS Commerce",
+    "url": "https://github.com/oocscommerce"
+  },
+  "plugins": [
+    {
+      "name": "lynx",
+      "source": "./plugins/lynx",
+      "description": "Skills for building Magento modules on the Lynx storefront: components, providers, pages, checkout, themes, SSR and MCP tools",
+      "category": "development"
+    }
+  ]
+}

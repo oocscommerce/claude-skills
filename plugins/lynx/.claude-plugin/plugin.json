@@ -1,0 +1,13 @@
+{
+  "name": "lynx",
+  "version": "1.0.0",
+  "description": "Skills for building Magento modules on the Lynx storefront: components, providers, pages, checkout, themes, SSR and MCP tools",
+  "author": {
+    "name": "OOCS Commerce",
+    "url": "https://www.oocscommerce.com"
+  },
+  "homepage": "https://docs.oocscommerce.com/lynx/developer/#working-with-claude-code",
+  "repository": "https://github.com/oocscommerce/claude-skills",
+  "license": "MIT",
+  "keywords": ["magento", "lynx", "vue", "react", "inertia", "pagebuilder"]
+}
