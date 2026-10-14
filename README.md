@@ -19,6 +19,7 @@ Skills that teach [Claude Code](https://claude.com/claude-code) how to build on 
 | `product-type` | Support a new or third-party product type on the storefront |
 | `theme` | Create a child theme or override a component |
 | `ssr` | Make components render correctly with server-side rendering |
+| `testing` | Write and run tests for components, stores and theme overrides |
 | `extension-port` | Make an existing Luma extension work on Lynx |
 | `mcp-tool` | Add a tool to the Lynx MCP server |
 

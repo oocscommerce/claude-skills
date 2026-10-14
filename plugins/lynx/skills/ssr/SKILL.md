@@ -215,6 +215,7 @@ overrides `DynamicNode`, keep both. Use `createSSRApp`/`hydrateRoot` only when t
 3. Open the page in a browser with the console open: no hydration mismatch error, no content disappearing and
    reappearing after load (throttle the network to see it). Compare with JavaScript disabled to see the server output.
 4. Test both themes if you ship both: Vue renderer port `13714`, React `13715`.
+   Keep a `hydrate()` case in the component's test so a regression fails `bin/magento lynx:static:test` (skill **testing**).
 5. Read render errors in the Node process's stderr (source-mapped) or `npm run tail:ssr:worker`; fallbacks in
    `var/log/system.log` (`Lynx SSR: renderer did not answer` / `refused the page` / `page cannot be encoded`).
 6. Restore the store's previous `lynx_ssr/general/*` values if you changed them only to test.

@@ -9,7 +9,7 @@
     {
       "name": "lynx",
       "source": "./plugins/lynx",
-      "description": "Skills for building Magento modules on the Lynx storefront: components, providers, pages, checkout, themes, SSR and MCP tools",
+      "description": "Skills for building Magento modules on the Lynx storefront: components, providers, pages, checkout, themes, SSR, tests and MCP tools",
       "category": "development"
     }
   ]
