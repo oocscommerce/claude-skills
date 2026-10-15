@@ -82,7 +82,7 @@ The editor only knows the pages declared in the `pages` argument of `OOCS\LynxPa
 | `category_attribute` | Category Attribute, Category Image Attribute | Product Listing: Below Title, Above Products, Below Products |
 | `product_option` | Product Custom Options | Product Detail: Product Options (one per component) |
 | `checkout` | Checkout Cart, Checkout, Success, Failure, PayPal Review | |
-| `checkout_step` | The three checkout steps | Checkout: Steps (one per component) |
+| `checkout_step` | Extra checkout steps | Checkout: Before Shipping Method, Before Payment (one per component) |
 | `express_checkout` | Express payment buttons | Checkout and Checkout Cart: Express Checkout (one per component) |
 | `account` | Sign-in, registration and password forms, Logout Success, Login as Customer, My Account, Orders and Returns | |
 | `account_section` | Sections of My Account | My Account: Section (one per component) |

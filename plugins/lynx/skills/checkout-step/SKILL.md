@@ -1,6 +1,6 @@
 ---
 name: checkout-step
-description: Adds a custom step to the Lynx one-page checkout (OOCS_LynxCheckout) - a component in group `checkout_step` that the merchant places in the `steps` slot of the Checkout component, a step provider (`optional()` true, `resolve()` from the posted draft, idempotent `save()` via `OOCS\LynxCheckout\Api\CheckoutStepInterface`), a Vue and React component that calls `checkout.register({ title, skip, data, affectsTotals })` with its heading in `checkout.labels`, `data-step`, inline errors, virtual-cart skipping and an analytics event. Also covers changing the built-in steps with plugins. Use when a developer says "add a checkout step in Lynx", "delivery instructions / gift message / order comment / custom field step on the Lynx checkout", "ask every shopper something before payment", "save extra checkout data to the quote in Lynx", "plugin on a Lynx checkout step". For input tied to one carrier use shipping-method, to one payment method payment-method. Use with the basics skill.
+description: Adds a custom step to the Lynx one-page checkout (OOCS_LynxCheckout) - a component in group `checkout_step` that the merchant places in the `before_shipping_method` or `before_payment` slot of the Checkout component, a step provider (`optional()` true, `resolve()` from the posted draft, idempotent `save()` via `OOCS\LynxCheckout\Api\CheckoutStepInterface`), a Vue and React component that calls `checkout.register({ title, skip, data, affectsTotals })` with its heading in `checkout.labels`, `data-step`, inline errors, virtual-cart skipping and an analytics event. Also covers changing the built-in steps with plugins. Use when a developer says "add a checkout step in Lynx", "delivery instructions / gift message / order comment / custom field step on the Lynx checkout", "ask every shopper something before payment", "save extra checkout data to the quote in Lynx", "plugin on a Lynx checkout step". For input tied to one carrier use shipping-method, to one payment method payment-method. Use with the basics skill.
 ---
 
 # Lynx checkout step
@@ -27,13 +27,15 @@ in PageBuilder; the storage and the copy to the order are plain Magento.
 ```
 Checkout (default_checkout)
 ├── express        express payment buttons
-├── steps          one node per step, in slot order: shipping_address, shipping_method, [yours], payment
+├── before_shipping_method   extra steps between Address and Shipping Method
+├── before_payment           extra steps between Shipping Method and Payment
 └── sidebar_after  content below the order summary
 ```
 
-1. The container gets `steps` (names of visible nodes in the slot) and `steps_url` (`/lynx/checkout/process`) from
-   `OOCS\LynxCheckout\Provider\Checkout\Checkout`. Steps whose component the current theme lacks are dropped on the
-   client (a module shipping only `.vue` is skipped on a React theme).
+1. Address, Shipping Method and Payment are fixed: the container renders them, they are not layout nodes. It gets
+   `steps` (the fixed names with the visible nodes of each slot between them) and `steps_url`
+   (`/lynx/checkout/process`) from `OOCS\LynxCheckout\Provider\Checkout\Checkout`. Steps whose component the
+   current theme lacks are dropped on the client (a module shipping only `.vue` is skipped on a React theme).
 2. Each step component calls `checkout.register(...)`. The flow starts once **every** step in `steps` has registered,
    at the first one not skipped.
 3. Moving to a step (Continue, Edit, page load, an Inertia reload of the step) POSTs
@@ -80,7 +82,8 @@ Storage: quote + `sales_order` columns in `etc/db_schema.xml` (+ whitelist) and 
 </type>
 ```
 
-`group` must be `checkout_step` (the only group the **Steps** slot accepts, once per component). The registered name
+`group` must be `checkout_step` (the only group the **Before Shipping Method** and **Before Payment** slots accept,
+once per component). The registered name
 is the name `Process` and the store look the step up by.
 
 ### 3. The provider - `Provider/DeliveryNotes.php`
@@ -181,9 +184,10 @@ const step = checkout.register({
 
 Card contract (copy the built-in steps' markup and classes):
 
-- Root: `:data-step="step.index"` (the store scrolls to it and focuses its `h2`), card classes
-  `scroll-mt-4 bg-base-100 border-(length:--border) border-base-300 rounded-box p-5`.
-- `h2` heading from `checkout.labels.<yourKey>` always; border under it once `isReached`.
+- Root: `:data-step="step.index"` (the store scrolls to it and focuses its `h2`), classes
+  `checkout.stepCardClass` (card or flat, as the merchant set **Step Style** on the Checkout component).
+- `h2` heading from `checkout.labels.<yourKey>` always, prefixed `{step.number}. ` when
+  `checkout.appearance.stepNumbering` and `step.number` (0 while skipped); border under it once `isReached`.
 - `isDone`: a collapsed summary + **Edit** button -> `checkout.goTo(step.index)`.
 - `isCurrent`: skeleton while `loading`, else the form, then the Continue button
   (`:class="checkout.stepButtonClass"`, text `step.continueLabel`, disabled while `loading`).
@@ -208,11 +212,14 @@ bin/magento cache:clean
 ```
 
 The step appears only once the merchant places it: PageBuilder > Checkout page > select **Checkout** > **Add to
-Steps** > the step, then drag it between **Checkout Shipping Method** and **Checkout Payment** in the outline, in the
-merchant's own design (the default design is read-only). Put this in the module's install guide; never write the
-merchant's checkout layout from a data patch.
+Before Payment** (or **Before Shipping Method**) > the step, in the merchant's own design (the default design is
+read-only). Put this in the module's install guide; never write the merchant's checkout layout from a data patch.
 
 ## Modifying the built-in steps
+
+Address, Shipping Method and Payment are not layout nodes: the container renders them in that fixed order, their
+registry entries are `hidden` (kept for `Process` to find the providers). Their look follows the Checkout component's
+settings (**Steps** group: style, numbering, Continue width, how rates and methods are listed).
 
 - Add props or change labels: `afterResolve` plugin on `OOCS\LynxCheckout\Provider\Checkout\Step\ShippingAddress`,
   `...\ShippingMethod` or `...\Payment`.
@@ -220,12 +227,12 @@ merchant's checkout layout from a data patch.
   `$draft` (e.g. `OOCS\LynxInStorePickup\Plugin\SavePickupLocation`). `Payment` has no `save()`.
 - Change markup: override the step's `.vue` / `.tsx` in a theme; keep `register()`, `data-step` and the `data()` keys
   the providers read (`shippingAddress`, `shippingMethod`...).
-- Address fields: merchant setting **Address Fields** of the Checkout Address component; no code.
+- Address fields: merchant setting **Address Fields** of the Checkout component; no code.
 
 ## Rules
 
-- **Payment is last.** A step after Payment is never reached. Place custom steps before it, after the address when
-  they depend on it.
+- **Pick the slot by what the step reads.** In **Before Shipping Method** the address is already on the quote; in
+  **Before Payment** the carrier is too and totals are recollected. Payment is always last.
 - **Every node in `steps` must register**, even when it does not apply (`skip: true`); one that never registers keeps
   the checkout from starting. Skip in `register()`, then render nothing.
 - **`save()` idempotent and cheap**: it reruns on Edit, back navigation and Inertia reloads. Compare with the quote,

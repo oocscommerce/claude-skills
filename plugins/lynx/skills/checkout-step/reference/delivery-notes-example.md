@@ -291,13 +291,14 @@ function submit() {
     <div
         v-if="!checkout.isVirtual"
         :data-step="step.index"
-        class="scroll-mt-4 bg-base-100 border-(length:--border) border-base-300 rounded-box p-5"
+        :class="checkout.stepCardClass"
     >
         <h2
             class="text-lg font-semibold text-base-content"
             :class="step.isReached.value ? 'pb-3 mb-4 border-b border-base-300' : ''"
         >
-            {{ checkout.labels.deliveryInstructions }}
+            <template v-if="checkout.appearance.stepNumbering && step.number.value">{{ step.number.value }}. </template
+            >{{ checkout.labels.deliveryInstructions }}
         </h2>
 
         <div
@@ -408,11 +409,12 @@ export default function DeliveryNotes({
     return (
         <div
             data-step={step.index}
-            className="scroll-mt-4 bg-base-100 border-(length:--border) border-base-300 rounded-box p-5"
+            className={checkout.stepCardClass}
         >
             <h2
                 className={`text-lg font-semibold text-base-content ${step.isReached ? 'pb-3 mb-4 border-b border-base-300' : ''}`}
             >
+                {checkout.appearance.stepNumbering && step.number ? `${step.number}. ` : null}
                 {checkout.labels.deliveryInstructions}
             </h2>
 

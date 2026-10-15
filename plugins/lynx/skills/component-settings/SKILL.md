@@ -36,7 +36,9 @@ An unknown `type` falls back to a plain text input.
 
 ### 1. Declare each setting
 
-Keys every setting takes: `label`, `type`, `default`, optional `description` (the **?** tooltip) and `depends`.
+Keys every setting takes: `label`, `type`, `default`, optional `description` (the **?** tooltip), `depends` and
+`tab`. With many settings, `tab` groups them into collapsible rows, as the Theme tab does: a setting without one goes to
+**General**, first; the other groups follow in order of first use. No setting with `tab` = one list, as before.
 
 ```xml
 <item name="settings" xsi:type="array">
