@@ -31,7 +31,7 @@ Request body: the Inertia page object plus `storeConfig` (store-scope config the
 
 - builds the Inertia app once per process with the same page map (`virtual:lynx-pages`) and default layout
   (`OOCS_LynxTheme/Layouts/Default`) as the browser entry;
-- per render: `setStoreConfig(storeConfig)`, a fresh Pinia (`createPinia()`) or jotai store (`createStore()`);
+- per render: `setStoreConfig(storeConfig)`, a fresh Pinia (`createPinia()`) or store registry (`createRegistry()`);
 - renders one page at a time per process (a promise queue), because the store config is process-wide during a render;
 - React only: `await preloadComponents(pageComponents(page))` before `renderToString`.
 

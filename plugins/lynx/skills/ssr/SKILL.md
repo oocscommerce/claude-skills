@@ -127,7 +127,7 @@ The first browser render must equal the server markup, or Vue/React reports a hy
   component: the renderer's time zone and locale are not the shopper's.
 - Element ids for `label`/`aria-*` pairs: `useId()` (Vue 3.5 and React), never counters or random values.
 - No per-visitor state in module-level variables: the renderer process serves every visitor. Keep it in stores
-  (created per render: a Pinia instance or jotai store per request).
+  (created per render: a Pinia instance or store registry per request).
 
 ### 4. Headless components
 

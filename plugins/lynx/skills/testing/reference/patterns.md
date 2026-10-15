@@ -82,10 +82,10 @@ const wrapper = mountNode(MiniCart, { props })
 useCustomerDataStore().sections = { cart: { summary_count: 2 } }
 await nextTick()
 
-// React: pass your own jotai store to reach it
-const store = createStore()
-mountNode(MiniCart, { props, store })
-act(() => customerDataStore(store).setAuth({ isLoggedIn: true }))
+// React: pass your own registry to reach the stores
+const registry = createRegistry()
+mountNode(MiniCart, { props, registry })
+act(() => useCustomerDataStore.of(registry).getState().setAuth({ isLoggedIn: true }))
 ```
 
 Store config the store reads goes through `setStoreConfig({ … })` from `OOCS_LynxTheme/utils/storeConfig` when testing

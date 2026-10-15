@@ -69,7 +69,7 @@ app/code/Vendor/Module/                    (or a Composer package inside the pro
     │       ├── Pages/                     controller-declared page components
     │       ├── stores/                    Pinia stores of your feature
     │       └── utils/                     plain functions
-    ├── react/src/…                        same tree: .tsx components, jotai stores
+    ├── react/src/…                        same tree: .tsx components, defineStore stores
     └── css/                               optional plain CSS, imported by a theme as "Vendor_Module/css/x.css"
 ```
 
@@ -114,7 +114,7 @@ import { useWishlistStore } from 'Vendor_Module/stores/wishlistStore'
 
 ### Stores, utils, global stores
 
-Pinia on Vue, jotai on React. Put a feature store in the module that owns the feature (it gets its own chunk). Reuse
+Pinia on Vue, `defineStore` (Zustand, Pinia's options shape) on React. Put a feature store in the module that owns the feature (it gets its own chunk). Reuse
 `OOCS_LynxTheme`'s instead of writing your own:
 
 | Import | Gives |
@@ -271,7 +271,7 @@ from. What to run after which change: [reference/cli-and-workflow.md](reference/
 - [reference/magento-on-lynx.md](reference/magento-on-lynx.md): packages, request lifecycle, Magento differences
 - [reference/layout-xml.md](reference/layout-xml.md): `lynx_` files, containers, examples
 - [reference/design-settings.md](reference/design-settings.md): design setting → CSS variable → classes
-- [reference/stores.md](reference/stores.md): Pinia and jotai store templates, npm dependencies
+- [reference/stores.md](reference/stores.md): Pinia and React `defineStore` templates, npm dependencies
 - [reference/cli-and-workflow.md](reference/cli-and-workflow.md): CLI options, what to run after which change
 - https://docs.oocscommerce.com/lynx/developer/ , /developer/setup, /developer/magento-differences,
   /developer/layout-xml, /developer/frontend

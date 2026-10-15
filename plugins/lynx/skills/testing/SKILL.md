@@ -101,11 +101,12 @@ success/failure, customer account and login pages, PageBuilder preview only (`Pr
 beforeEach(() => setActivePinia(createPinia()))
 const store = useWishlistStore()
 
-// React
-const store = wishlistStore(createStore())   // createStore from 'jotai'
+// React: createRegistry from 'OOCS_LynxTheme/stores/defineStore'
+const registry = createRegistry()
+const store = () => useWishlistStore.of(registry).getState()   // read anew: state is replaced, not changed in place
 ```
 
-For a React hook, `renderHook(() => useWishlistStore(), { wrapper })` with a jotai `Provider` wrapper.
+For a React hook, `renderHook(() => useWishlistStore(), { wrapper })` with a `StoreProvider registry={registry}` wrapper.
 
 ## Rules
 

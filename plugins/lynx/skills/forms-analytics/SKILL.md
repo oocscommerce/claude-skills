@@ -12,7 +12,7 @@ to an outside service.
 
 - Read **basics**. The component itself is built with **component**; its URLs, labels and section names come
   from its provider (**provider**).
-- Store imports, identical in Vue (pinia) and React (jotai) themes:
+- Store imports, identical in Vue (Pinia) and React (`defineStore`) themes:
   `OOCS_LynxTheme/stores/global/formKeyStore` (`useFormKeyStore`), `.../messagesStore` (`useMessagesStore`),
   `.../customerDataStore` (`useCustomerDataStore`), `.../analyticsStore` (`useAnalyticsStore`);
   `OOCS_LynxTheme/utils/storeConfig` (`config<T>(key, fallback)`, e.g. `config('currencyCode', '')`).

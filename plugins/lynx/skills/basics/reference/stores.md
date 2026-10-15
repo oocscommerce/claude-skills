@@ -21,42 +21,34 @@ export const useNoticeStore = defineStore('vendorNotice', {
 })
 ```
 
-React (jotai), `view/frontend/lynx/react/src/stores/noticeStore.ts`: an atom for the state, actions bound to a jotai
-store (usable outside React too), and a hook for components:
+React, `view/frontend/lynx/react/src/stores/noticeStore.ts`: `defineStore` from `OOCS_LynxTheme/stores/defineStore`
+(Zustand underneath) takes Pinia's options shape; an action reads `this` and writes `this.$set({ â€¦ })`:
 
 ```ts
-import { atom, useAtomValue, useStore } from 'jotai'
-import { useMemo } from 'react'
-import type { JotaiStore } from 'OOCS_LynxTheme/types/store'
+import { defineStore } from 'OOCS_LynxTheme/stores/defineStore'
 
-type NoticeState = { dismissed: boolean }
-
-export const noticeAtom = atom<NoticeState>({ dismissed: false })
-
-export function noticeStore(store: JotaiStore) {
-    return {
-        get dismissed(): boolean {
-            return store.get(noticeAtom).dismissed
-        },
+export const useNoticeStore = defineStore('vendorNotice', {
+    state: () => ({ dismissed: false }),
+    actions: {
         dismiss(): void {
-            store.set(noticeAtom, { dismissed: true })
+            this.$set({ dismissed: true })
         },
-    }
-}
+    },
+})
 
-export function useNoticeStore() {
-    const store = useStore()
-    // Subscribed, so the component renders again when the state changes
-    useAtomValue(noticeAtom)
-    return useMemo(() => noticeStore(store), [store])
-}
+// component: const notice = useNoticeStore()          (state + actions)
+//            const dismissed = useNoticeStore(s => s.dismissed)   (renders only when it changes)
+// outside React: useNoticeStore.of(registry).getState().dismiss()
 ```
 
-- Pinia store ids must be unique across modules: prefix with your vendor (`vendorNotice`).
-- The browser has one Pinia / jotai store per tab; the SSR renderer creates one per request. Never keep per-visitor
+- Store ids must be unique across modules, Pinia and React alike: prefix with your vendor (`vendorNotice`).
+- The browser has one Pinia / store registry per tab; the SSR renderer creates one per request. Never keep per-visitor
   state in a module-level variable.
-- React: in callbacks after `await`, read fresh state through store actions (bound to the jotai store), not from the
-  render closure.
+- React: `actions` holds functions only; constants and objects changed in place (a Map) go in `state`. `this` in an
+  action is the state as it is now, also after `await`; the object `useX()` returned is the render's snapshot, so a
+  later callback (effect cleanup, timer) reads `useX.of(useRegistry()).getState()` or calls an action.
+- React getters: compute them in a hook around the store (as `useCustomerDataStore` does); a store nobody renders
+  from picks its actions with `useShallow`, so events do not re-render.
 
 ## Using the global stores
 
@@ -93,6 +85,6 @@ Ship a `package.json` next to `src/` (`view/frontend/lynx/vue/package.json`, `â€
 
 - `lynx:workspace:setup` adds the folder as an npm workspace; one `npm install` at the root serves every theme.
 - `name` must be unique across all workspaces. Pin exact versions.
-- Never add Vue, React, Inertia.js, Pinia or jotai: they come from the theme.
+- Never add Vue, React, Inertia.js, Pinia or Zustand: they come from the theme.
 - A dependency that touches `window` when imported must be imported dynamically inside `onMounted` / `useEffect`
   (skill ssr). For the Cloudflare Worker SSR build, it must not need Node built-ins.
