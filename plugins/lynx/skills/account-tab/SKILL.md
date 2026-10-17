@@ -105,7 +105,7 @@ The `tabs` pool is declared by Lynx in the **frontend** area, so contribute in t
             <item name="product_questions" xsi:type="array">
                 <item name="label" xsi:type="string">My Product Questions</item>
                 <item name="route" xsi:type="string">productquestions/my</item>
-                <item name="sort_order" xsi:type="number">75</item>
+                <item name="sort_order" xsi:type="number">85</item>
             </item>
         </argument>
     </arguments>
@@ -113,7 +113,8 @@ The `tabs` pool is declared by Lynx in the **frontend** area, so contribute in t
 ```
 
 - Item name = tab key the frame highlights (`active_tab`). Built-in keys and orders: `dashboard` 10, `orders` 20,
-  `addresses` 30, `account_info` 40, `downloads` 50, `newsletter` 60, `wishlist` 70, `stored_payments` 80.
+  `addresses` 30, `account_info` 40, `downloads` 50, `newsletter` 60, `wishlist` 70, `reviews` 75,
+  `stored_payments` 80. Pick a free value.
 - An entry needs both `label` and `route` to show; `route` goes through `UrlInterface::getUrl()`.
 - The label is an English phrase that Lynx translates with `__()` when it builds the sidebar. Use the same wording
   as the extension's Luma link and keep the phrase in the module's `i18n/*.csv`.

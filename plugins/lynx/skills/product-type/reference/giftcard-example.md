@@ -7,8 +7,8 @@ constant `TYPE_CODE`, method `getAmounts($product)` returning floats). Its buy r
 
 ## Option b
 
-Keeps `default_product_detail_simple` (its `available_on` extended as in SKILL.md step 3a) and adds a Gift Card
-Options block in the Product Options slot.
+Keeps `default_product_detail_simple` (its `available_on` extended as in SKILL.md step 3a, like Product and Product
+Media) and adds a Gift Card Options block in the Product Options slot.
 
 ### Provider `Provider/GiftCardOptions.php`
 
@@ -43,7 +43,7 @@ class GiftCardOptions extends AbstractComponentProvider
         /** @var GiftCard $type */
         $type = $product->getTypeInstance();
 
-        // product_id keys this block's share of the request in productOptionsStore
+        // product_id keys this block's share of the request in the product store
         $props['product_id'] = (int) $product->getId();
         $props['amounts'] = array_map(
             fn (float $amount): array => [
@@ -71,7 +71,7 @@ class GiftCardOptions extends AbstractComponentProvider
 ```vue
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue'
-import { useProductOptionsStore } from 'OOCS_LynxCatalog/stores/productOptionsStore'
+import { useProductStore } from 'OOCS_LynxCatalog/stores/productStore'
 import { formatPrice } from 'OOCS_LynxTheme/utils/price'
 
 type Amount = { value: number; price: number }
@@ -84,7 +84,7 @@ const props = withDefaults(
 // This block's key among the contributions to the product's request
 const CONTRIBUTOR = 'vendor_giftcard'
 
-const optionsStore = useProductOptionsStore()
+const optionsStore = useProductStore()
 const amount = ref<Amount | null>(null)
 const name = ref('')
 const email = ref('')
@@ -165,7 +165,7 @@ onUnmounted(() => optionsStore.forget(props.product_id, CONTRIBUTOR))
 
 ```tsx
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useProductOptionsStore } from 'OOCS_LynxCatalog/stores/productOptionsStore'
+import { useProductStore } from 'OOCS_LynxCatalog/stores/productStore'
 import { formatPrice } from 'OOCS_LynxTheme/utils/price'
 
 type Amount = { value: number; price: number }
@@ -177,7 +177,7 @@ const EMPTY_LIST: never[] = []
 const EMPTY_MAP: Record<string, never> = {}
 
 export default function GiftCardOptions({ product_id = 0, amounts = EMPTY_LIST, labels = EMPTY_MAP }: Props) {
-    const optionsStore = useProductOptionsStore()
+    const optionsStore = useProductStore()
     // The store object changes with every update; effects read the current one
     const storeRef = useRef(optionsStore)
     storeRef.current = optionsStore
@@ -254,7 +254,7 @@ export default function GiftCardOptions({ product_id = 0, amounts = EMPTY_LIST, 
 ```
 
 Add `Amount`, `Recipient Name`, `Recipient Email`, `Message` to `i18n/en_US.csv`. The Product Detail does the rest:
-required-field message, the POST, the response messages and the section reload.
+blocking the POST while a field is empty, the POST, the response messages and the section reload.
 
 ## Option c
 
@@ -275,8 +275,8 @@ required-field message, the POST, the response messages and the section reload.
         <item name="vendor_giftcard" xsi:type="string">catalog_product_view_type_vendor_giftcard</item>
     </item>
     <item name="slots" xsi:type="array">
-        <item name="gallery_after" xsi:type="array">
-            <item name="label" xsi:type="string">Below Gallery</item>
+        <item name="price_after" xsi:type="array">
+            <item name="label" xsi:type="string">Below Price</item>
             <item name="allowed_groups" xsi:type="array">
                 <item name="layout" xsi:type="string">layout</item>
                 <item name="text" xsi:type="string">text</item>
@@ -287,10 +287,6 @@ required-field message, the POST, the response messages and the section reload.
                 <item name="general" xsi:type="string">general</item>
             </item>
         </item>
-        <item name="price_after" xsi:type="array">
-            <item name="label" xsi:type="string">Below Price</item>
-            <!-- allowed_groups as gallery_after -->
-        </item>
         <item name="product.info.additional" xsi:type="array">
             <item name="label" xsi:type="string">Product Options</item>
             <item name="allowed_groups" xsi:type="array">
@@ -300,27 +296,48 @@ required-field message, the POST, the response messages and the section reload.
         </item>
         <item name="info_after" xsi:type="array">
             <item name="label" xsi:type="string">Below Add to Cart</item>
-            <!-- allowed_groups as gallery_after -->
+            <!-- allowed_groups as price_after -->
         </item>
     </item>
-    <item name="settings" xsi:type="array"/>
+    <!-- Read by AbstractDetail: the wish list / compare URL is sent only when on -->
+    <item name="settings" xsi:type="array">
+        <item name="show_wishlist" xsi:type="array">
+            <item name="label" xsi:type="string">Show Wishlist</item>
+            <item name="type" xsi:type="string">select</item>
+            <item name="default" xsi:type="string">yes</item>
+            <item name="options" xsi:type="array">
+                <item name="yes" xsi:type="array"><item name="value" xsi:type="string">yes</item><item name="label" xsi:type="string">Yes</item></item>
+                <item name="no" xsi:type="array"><item name="value" xsi:type="string">no</item><item name="label" xsi:type="string">No</item></item>
+            </item>
+        </item>
+        <item name="show_compare" xsi:type="array">
+            <item name="label" xsi:type="string">Show Compare</item>
+            <item name="type" xsi:type="string">select</item>
+            <item name="default" xsi:type="string">no</item>
+            <!-- options as show_wishlist -->
+        </item>
+    </item>
 </item>
 ```
 
-Copy the full `allowed_groups` lists from `default_product_detail_simple` in
-`module-lynx-catalog/etc/di.xml` rather than writing them from memory.
+Copy the full `allowed_groups` lists and the settings (with their `description`) from
+`default_product_detail_simple` in `module-lynx-catalog/etc/di.xml` rather than writing them from memory. The
+gallery and its Below Gallery slot belong to Product Media, the breadcrumbs to Product: both already list your path
+(SKILL.md step 3).
 
 ### Component changes
 
 Copy `Components/Product/Simple.vue` and `Simple.tsx` from
 `module-lynx-catalog/view/frontend/lynx/<vue|react>/src/` to
-`Vendor/GiftCardLynx/view/frontend/lynx/<vue|react>/src/Components/Product/GiftCard.*`. Keep gallery, price, tier
-prices, rating, wish list, analytics and the four slots. Change only the quantity section and `addToCart()`:
+`Vendor/GiftCardLynx/view/frontend/lynx/<vue|react>/src/Components/Product/GiftCard.*`. Keep price, rating, the
+wish list and compare buttons (rendered only when `urls.add_to_wishlist` / `urls.add_to_compare` is present),
+analytics and the three slots. Drop the tier prices and the struck-through price (the provider does not call
+`addQuantityProps()` / `addRegularPrice()`). Change the quantity section and `addToCart()`:
 
 
 ```vue
 <script setup lang="ts">
-// Imports, the props of Simple.vue and its gallery, wish list and analytics code stay as they are
+// Imports, the props of Simple.vue and its wish list, compare and analytics code stay as they are
 
 const props = withDefaults(
     defineProps<{
@@ -332,13 +349,15 @@ const props = withDefaults(
 
 const amount = ref<number | null>(null)
 const recipient = ref({ name: '', email: '' })
+// Shows labels.requiredField under the empty fields once Add to Cart was pressed
+const submitted = ref(false)
 
 async function addToCart() {
     if (adding.value) return
 
     const { name, email } = recipient.value
     if (amount.value === null || !name.trim() || !email.trim() || chosenOptions.value.missing.length) {
-        messagesStore.add('error', props.labels.requiredOptions ?? '')
+        submitted.value = true
         optionsStore.requestValidation(props.product_id)
         return
     }
@@ -359,7 +378,7 @@ async function addToCart() {
 ```
 
 ```tsx
-// Imports, the props of Simple.tsx and its gallery, wish list and analytics code stay as they are
+// Imports, the props of Simple.tsx and its wish list, compare and analytics code stay as they are
 type Props = {
     // …every prop of Simple.tsx, plus:
     amounts?: { value: number }[]
@@ -368,12 +387,14 @@ type Props = {
 export default function GiftCard({ amounts = EMPTY_LIST, /* …as Simple.tsx */ }: Props) {
     const [amount, setAmount] = useState<number | null>(null)
     const [recipient, setRecipient] = useState({ name: '', email: '' })
+    // Shows labels.requiredField under the empty fields once Add to Cart was pressed
+    const [submitted, setSubmitted] = useState(false)
 
     async function addToCart() {
         if (adding) return
 
         if (amount === null || !recipient.name.trim() || !recipient.email.trim() || chosenOptions.missing.length) {
-            messagesStore.add('error', labels.requiredOptions ?? '')
+            setSubmitted(true)
             optionsStore.requestValidation(product_id)
             return
         }
@@ -401,8 +422,9 @@ configurable, `bundle_option[<id>][]` bundle, `super_group[<id>]` grouped, `link
 
 ## Starting layout
 
-`Setup/Patch/Data/InstallGiftCardLayout.php` — copies the simple product's default layout (Product Detail with
-Product Custom Options, Tabs group, Related Products) and adds the options node:
+`Setup/Patch/Data/InstallGiftCardLayout.php` — copies the simple product's default layout (a Group holding Product,
+whose Images slot has Product Media and whose Details slot has Product Detail with Product Custom Options; then the
+Tabs group and Related Products) and adds the options node:
 
 ```php
 <?php
@@ -413,7 +435,7 @@ namespace Vendor\GiftCardLynx\Setup\Patch\Data;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\Setup\ModuleDataSetupInterface;
 use Magento\Framework\Setup\Patch\DataPatchInterface;
-use OOCS\LynxCatalog\Setup\Patch\Data\InstallCatalogLayouts;
+use OOCS\LynxCatalog\Setup\Patch\Data\SplitProductMedia;
 use OOCS\LynxPageBuilder\Model\Design;
 
 class InstallGiftCardLayout implements DataPatchInterface
@@ -428,7 +450,8 @@ class InstallGiftCardLayout implements DataPatchInterface
 
     public static function getDependencies(): array
     {
-        return [InstallCatalogLayouts::class];
+        // Runs after InstallCatalogLayouts: the simple layout already has the Product frame
+        return [SplitProductMedia::class];
     }
 
     public function getAliases(): array
@@ -451,15 +474,17 @@ class InstallGiftCardLayout implements DataPatchInterface
             return $this;
         }
 
-        // First node: Product Detail; its Product Options slot already holds Product Custom Options
+        // Group > Product > Details slot > Product Detail; its Product Options slot holds Product Custom Options
         $nodes = $this->json->unserialize($value);
-        $nodes[0]['slots']['product.info.additional'][] = [
+        $detail = &$nodes[0]['slots']['default'][0]['slots']['detail'][0];
+        $detail['slots']['product.info.additional'][] = [
             'name'      => 'vendor_giftcard_options',
             'component' => 'Vendor_GiftCardLynx/Components/GiftCardOptions',
             'label'     => 'Gift Card Options',
             'props'     => [],
             'visible'   => true,
         ];
+        unset($detail);
 
         $connection->insertOnDuplicate($table, [[
             'design_id' => Design::DEFAULT_ID,
@@ -472,8 +497,9 @@ class InstallGiftCardLayout implements DataPatchInterface
 }
 ```
 
-For option c, instead of appending the options node set `$nodes[0]['name'] = 'vendor_product_detail_giftcard'` and
-`$nodes[0]['component'] = 'Vendor_GiftCardLynx/Components/Product/GiftCard'`.
+For option c, instead of appending the options node set `$detail['name'] = 'vendor_product_detail_giftcard'`,
+`$detail['component'] = 'Vendor_GiftCardLynx/Components/Product/GiftCard'` and
+`$detail['label'] = 'Product Detail (Gift Card)'`.
 
 Layouts are cached in the `lynx_component` cache type and pages in the full page cache: clean both after the patch.
 Without a patch, merchants open **Products › Gift card product page** in the editor and build the page in their own

@@ -118,9 +118,11 @@ cp vendor/oocscommerce/module-lynx-catalog/view/frontend/lynx/vue/src/Components
 # React theme: lynx/react/src/…/Simple.tsx
 ```
 
-Then edit the copy. Keep its props and the slots it renders (`gallery_after`, `price_after`,
-`product.info.additional`, `info_after`): the provider still sends the same props and merchants may have placed
-components in those slots.
+Then edit the copy. Keep its props and the slots it renders (`price_after`, `product.info.additional`,
+`info_after`): the provider still sends the same props and merchants may have placed components in those slots.
+Treat `urls.add_to_wishlist` and `urls.add_to_compare` as optional and render their buttons only when present: the
+provider sends them only while the node's `show_wishlist` / `show_compare` is on and Magento allows it. The gallery
+is `Components/Product/Media` (slot `gallery_after`), the breadcrumbs `Components/Product/Page`.
 
 Stores and utils work the same way: `$T/OOCS_LynxTheme/lynx/vue/src/stores/global/messagesStore.ts` replaces the store
 for every importer. More path examples and the resolution order: [reference/overrides.md](reference/overrides.md).

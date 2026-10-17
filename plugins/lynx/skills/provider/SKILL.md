@@ -109,6 +109,16 @@ if (!$product) {
   `i18n/en_US.csv`. Keep `%1`, `%2` for values only the browser knows and `replace()` them in the component. Name
   keys by role (`submit`, `empty`). A component with text but no data still gets a provider that only returns
   `labels`.
+- **Add a prop, label or URL only when the component will show it** (its setting on, the Magento config allows it).
+  Never build everything and `unset` afterwards; the component renders the part only when the prop is there:
+
+```php
+if (($props['show_wishlist'] ?? 'yes') === 'yes' && $this->wishlistHelper->isAllow()) {
+    $props['urls']['add_to_wishlist'] = $this->urlBuilder->getUrl('wishlist/index/add');
+    $props['labels'] += ['addToFavorites' => (string) __('Add to Wish List')];
+}
+```
+
 - **No per-visitor data in props** (cart, wishlist, customer name): page props go through the full page cache. Read it
   in the browser from customer data.
 - `resolve()` is memoized per request by component name + props: two identical nodes on one page resolve once.

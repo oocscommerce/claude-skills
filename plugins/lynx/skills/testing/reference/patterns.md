@@ -15,7 +15,7 @@ const props = { product_id: 42, urls: { add: '/wishlist/index/add/' }, labels: {
 
 describe('WishlistButton', () => {
     it('posts the product with the form key', async () => {
-        document.cookie = 'form_key=abcDEF0123456789; path=/'
+        document.cookie = 'form_key=test-form-key; path=/'
         const fetch = vi.fn(async () => ({ ok: true, json: async () => ({ success: true }) }))
         vi.stubGlobal('fetch', fetch)
         const wrapper = mountNode(WishlistButton, { props })
@@ -26,7 +26,7 @@ describe('WishlistButton', () => {
         const [url, init] = fetch.mock.calls[0]
         expect(url).toBe('/wishlist/index/add/')
         expect(new URLSearchParams(String(init.body)).get('product')).toBe('42')
-        expect(new URLSearchParams(String(init.body)).get('form_key')).toBe('abcDEF0123456789')
+        expect(new URLSearchParams(String(init.body)).get('form_key')).toBe('test-form-key')
     })
 })
 ```

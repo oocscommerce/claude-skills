@@ -233,6 +233,9 @@ To show a placeholder in the editor instead, render one root `<div>` only while 
 - **Settings are required props without defaults** in the component (`title: string`, no `?`, no `withDefaults` for
   them): the server fills in the di.xml `default`. Defaults in the component are only for provider-added props
   (`labels`, lists, `urls`).
+- **Gated features are optional props.** The provider adds a URL/label only when the setting is on and the config
+  allows it (no build-then-`unset`); the component types them with `?` and renders the part only when present
+  (`urls?: { add_to_cart: string; add_to_wishlist?: string }` with `v-if="urls.add_to_wishlist"`, as Product Detail).
 - **Type settings as `string` / `number` / `boolean`**, not literal unions: another module can add select options.
   Map option values with `Record<string, string>` and a fallback.
 - **No visible text in the component.** Button labels, placeholders, `aria-label`, messages come from the provider in a

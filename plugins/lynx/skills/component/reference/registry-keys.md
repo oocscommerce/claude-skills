@@ -68,17 +68,17 @@ The editor only knows the pages declared in the `pages` argument of `OOCS\LynxPa
 
 | Group | Built-in components | Accepted by slots of |
 |---|---|---|
-| `layout` | Group, Row, Column, Tabs, Spacer, Divider | Product Detail, Product Listing, Checkout, Checkout Cart |
+| `layout` | Group, Row, Column, Tabs, Spacer, Divider | Product, Product Media, Product Detail, Product Listing, Checkout, Checkout Cart |
 | `tab` | Tab | Tabs (only this group) |
-| `text` | Heading, Paragraph, Button, Link List | Product Detail, Product Listing, Checkout, Checkout Cart |
-| `media` | Image, Video, Banner, Carousel | Product Detail, Product Listing, Checkout, Checkout Cart |
-| `form` | Contact Form, Newsletter Form | Product Detail, Product Listing, Checkout, Checkout Cart |
+| `text` | Heading, Paragraph, Button, Link List | Product, Product Media, Product Detail, Product Listing, Checkout, Checkout Cart |
+| `media` | Image, Video, Banner, Carousel | Product, Product Media, Product Detail, Product Listing, Checkout, Checkout Cart |
+| `form` | Contact Form, Newsletter Form | Product, Product Media, Product Detail, Product Listing, Checkout, Checkout Cart |
 | `header_footer` | Header, Announcement Bar, Store Switcher, Currency Switcher, Social Links | |
 | `utility` | Cookie Consent, Back To Top, Custom Script, Google Analytics 4 | |
-| `product_list` | Product Carousel, Related / Up-sell / Cross-sell Products, Product Listing | Product Detail, Product Listing, Checkout, Checkout Cart |
+| `product_list` | Product Carousel, Related / Up-sell / Cross-sell Products, Product Listing, Compare Products | Product, Product Media, Product Detail, Product Listing, Checkout, Checkout Cart |
 | `search` | Search Results, Advanced Search Form, Advanced Search Results, Popular Search Terms | |
-| `product_page` | Product Detail (every type), Description, Specifications, Reviews | |
-| `product_attribute` | Product Attribute, Product Image Attribute | Product Detail: Below Gallery, Below Price, Below Add to Cart |
+| `product_page` | Product, Product Media, Product Detail (every type), Description, Specifications, Reviews | Product: Images, Details |
+| `product_attribute` | Product Attribute, Product Image Attribute, Price Alert, Stock Alert | Product: Images, Details; Product Media: Below Gallery; Product Detail: Below Price, Below Add to Cart |
 | `category_attribute` | Category Attribute, Category Image Attribute | Product Listing: Below Title, Above Products, Below Products |
 | `product_option` | Product Custom Options | Product Detail: Product Options (one per component) |
 | `checkout` | Checkout Cart, Checkout, Success, Failure, PayPal Review | |
@@ -86,7 +86,7 @@ The editor only knows the pages declared in the `pages` argument of `OOCS\LynxPa
 | `express_checkout` | Express payment buttons | Checkout and Checkout Cart: Express Checkout (one per component) |
 | `account` | Sign-in, registration and password forms, Logout Success, Login as Customer, My Account, Orders and Returns | |
 | `account_section` | Sections of My Account | My Account: Section (one per component) |
-| `general` | Not Found, and every component without a group | Product Detail, Product Listing, Checkout, Checkout Cart |
+| `general` | Not Found, and every component without a group | Product, Product Media, Product Detail, Product Listing, Checkout, Checkout Cart |
 
 Example: `group` `product_attribute` + `available_on` `catalog_product_view*` can be dropped below the price of
 Product Detail.

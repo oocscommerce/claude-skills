@@ -65,8 +65,9 @@ the same (`OOCS_LynxPaymentStripe` only holds the Lynx front of the Stripe modul
 ### 2. Each block → component + provider
 
 Register in global `etc/di.xml` under `OOCS\LynxComponent\Model\Registry` → `components` (an area `di.xml` would
-replace every other module's components). Pick `group` by where merchants must drop it: Product Detail slots accept
-`layout`, `text`, `media`, `form`, `product_list`, `product_attribute`, `general` but not `product_page`; `general`
+replace every other module's components). Pick `group` by where merchants must drop it: Product Detail
+slots and Product Media's Below Gallery accept `layout`, `text`, `media`, `form`, `product_list`, `product_attribute`,
+`general` but not `product_page`; Product's Images and Details slots accept those and `product_page` too; `general`
 lets it go into a Tab under the product. Use `available_on` `catalog_product_view*` for product-page blocks (every
 type has its own path). Full entry, provider, Vue and React: [reference/product-questions-example.md](reference/product-questions-example.md).
 

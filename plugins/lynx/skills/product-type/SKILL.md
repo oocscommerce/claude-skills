@@ -1,6 +1,6 @@
 ---
 name: product-type
-description: Adds Lynx storefront support for a new or third-party Magento product type (gift card, subscription, rental, any custom AbstractType). Covers the per-type product page path catalog_product_view_type_<typeId>, the editor page in PreviewPagebuilder with a sample product of that type, the Product Detail component (reuse Simple, add a Product Options block through productOptionsStore, or a custom provider extending AbstractDetail), cards in listings and carousels (needs_options from Helper\BuyFromList and isPossibleBuyFromList), the AJAX add-to-cart JSON (success, messages, backUrl), the default layout data patch, and cart / mini cart line options. Use when a developer says "product page is empty for my product type", "support gift card type on Lynx", "custom product type Lynx", "Product Detail for <type>", "add to cart for my type on Lynx". Use with the basics skill.
+description: Adds Lynx storefront support for a new or third-party Magento product type (gift card, subscription, rental, any custom AbstractType). Covers the per-type product page path catalog_product_view_type_<typeId>, the editor page in PreviewPagebuilder with a sample product of that type, the Product frame and Product Media (available_on), the Product Detail component (reuse Simple, add a Product Options block through productStore, or a custom provider extending AbstractDetail), cards in listings and carousels (needs_options from Helper\BuyFromList and isPossibleBuyFromList), the AJAX add-to-cart JSON (success, messages, backUrl), the default layout data patch, and cart / mini cart line options. Use when a developer says "product page is empty for my product type", "support gift card type on Lynx", "custom product type Lynx", "Product Detail for <type>", "add to cart for my type on Lynx". Use with the basics skill.
 ---
 
 # Lynx Product Type
@@ -16,10 +16,12 @@ layout. Output is a compatibility module (here `Vendor_GiftCardLynx` for a type 
   `prepareForCartAdvanced()` / `_prepareProduct()` reads (`giftcard_amount`, …).
 - Open the Lynx sources to imitate (under `vendor/oocscommerce/module-lynx-catalog/`):
   - `Plugin/ProductTypeLayoutPath.php`, `Helper/BuyFromList.php`, `Plugin/CartAddJson.php`
-  - `Provider/Product/AbstractDetail.php`, `Provider/Product/Detail/Simple.php`, `Detail/Downloadable.php`
-  - `etc/di.xml`: entry `default_product_detail_simple` (slots), `pages` of `PreviewPagebuilder`
-  - `view/frontend/lynx/{vue,react}/src/Components/Product/Simple.*`, `stores/productOptionsStore.ts`
-  - `Setup/Patch/Data/InstallCatalogLayouts.php`
+  - `Provider/Product/AbstractDetail.php`, `Provider/Product/Detail/Simple.php`, `Detail/Downloadable.php`,
+    `Provider/Product/Page.php` (Product: breadcrumbs), `Provider/Product/Media.php` (Product Media: gallery)
+  - `etc/di.xml`: entries `default_product` (Product, slots `media` / `detail`), `default_product_media` (Product
+    Media, slot `gallery_after`), `default_product_detail_simple` (slots, settings), `pages` of `PreviewPagebuilder`
+  - `view/frontend/lynx/{vue,react}/src/Components/Product/Simple.*`, `Page.*`, `Media.*`, `stores/productStore.ts`
+  - `Setup/Patch/Data/InstallCatalogLayouts.php` (`productPage()`), `Setup/Patch/Data/SplitProductMedia.php`
 
 ### What happens to an unknown type today
 
@@ -27,8 +29,11 @@ layout. Output is a compatibility module (here `Vendor_GiftCardLynx` for a type 
 `OOCS\LynxPageBuilder\Api\LayoutRepositoryInterface::getLayout()`, `etc/frontend/di.xml`, sortOrder 10) rewrites
 `catalog_product_view` to `catalog_product_view_type_<typeId>` whenever the registry holds `current_product`. For a
 new type no design has that path, so the content area is **empty** (header/footer, title, meta, FPC tags still work).
-There is no fallback to the simple layout, the editor has no page for it, and the built-in Product Detail entries are
-limited by `available_on` to their own type paths.
+There is no fallback to the simple layout, the editor has no page for it, and the built-in Product (`default_product`),
+Product Media (`default_product_media`) and Product Detail entries are limited by `available_on` to exact type paths.
+
+A product page is a **Product** frame (breadcrumbs; slot `media` "Images", slot `detail` "Details") holding
+**Product Media** (gallery) and a **Product Detail** (title, price, add to cart). Your type needs all three.
 
 Works unchanged: cart page and mini cart options (Magento's `ConfigurationPool` / customer-data `ItemPool`),
 wish list (`canConfigure()` / `hasRequiredOptions()`), FPC tags `cat_p` / `cat_p_<id>` (`Block\ProductCacheTags`).
@@ -67,14 +72,19 @@ page keys see `page`.
 
 ### 3. Pick the Product Detail — lightest option that fits
 
-**a. Bought like a simple product** (`product` + `qty` + custom options is enough). Add the path to the simple entry;
-Magento merges the item into Lynx's entry:
+Whatever the option, add your path to the `available_on` of Product and Product Media (Magento merges the items
+into Lynx's entries):
 
 ```xml
 <type name="OOCS\LynxComponent\Model\Registry">
     <arguments>
         <argument name="components" xsi:type="array">
-            <item name="default_product_detail_simple" xsi:type="array">
+            <item name="default_product" xsi:type="array">
+                <item name="available_on" xsi:type="array">
+                    <item name="vendor_giftcard" xsi:type="string">catalog_product_view_type_vendor_giftcard</item>
+                </item>
+            </item>
+            <item name="default_product_media" xsi:type="array">
                 <item name="available_on" xsi:type="array">
                     <item name="vendor_giftcard" xsi:type="string">catalog_product_view_type_vendor_giftcard</item>
                 </item>
@@ -84,19 +94,24 @@ Magento merges the item into Lynx's entry:
 </type>
 ```
 
+**a. Bought like a simple product** (`product` + `qty` + custom options is enough). Add the same `available_on` item
+to `default_product_detail_simple` as well.
+
 **b. A few extra fields.** Keep option a and add a component in group `product_option` (the only group the
 **Product Options** slot `product.info.additional` accepts). It contributes to the request through
-`useProductOptionsStore` from `OOCS_LynxCatalog/stores/productOptionsStore`:
+`useProductStore` from `OOCS_LynxCatalog/stores/productStore`:
 
 | Contribution key | Meaning |
 |---|---|
 | `fields` | Extra `checkout/cart/add` params; an array value is posted once per entry |
 | `files` | Uploads by field name; any file switches the request to multipart |
 | `price` | Added to the shown price and analytics value |
-| `missing` | Titles of empty required fields; non-empty blocks the post, shows `requiredOptions`, bumps `validationTicks[product_id]` |
+| `missing` | Titles of empty required fields; non-empty blocks the post and bumps `validationTicks[product_id]` (the block owning the field points at it) |
+| `base` | Optional `{ price, original_price, is_on_sale }` replacing the product's own prices (the picked configurable child) |
+| `images` | Optional `GalleryImage[]` (exported by the store) that Product Media shows before the product's own |
 
 Store API (Vue pinia and React hook have the same names): `contribute(productId, key, contribution)`,
-`forget(productId, key)`, `requestValidation(productId)`, `validationTicks`. Contribute on every change
+`forget(productId, key)`, `requestValidation(productId)`, `validationTicks`, `collect(productId)` (merged). Contribute on every change
 (`immediate`), `forget` on unmount and when `product_id` changes (Inertia can keep the block mounted), focus the first
 empty field when the tick for the product changes.
 
@@ -143,12 +158,14 @@ class GiftCard extends AbstractDetail
      */
     protected function addTypeProps(Product $product, array $props): array
     {
+        // Sold one at a time at a picked amount: no addQuantityProps(), no addRegularPrice()
         $type = $product->getTypeInstance();
         $props['amounts'] = array_map(static fn (float $a): array => ['value' => $a], $type->getAmounts($product));
         $props['labels'] += [
             'amount'         => (string) __('Amount'),
             'recipientName'  => (string) __('Recipient Name'),
             'recipientEmail' => (string) __('Recipient Email'),
+            'requiredField'  => (string) __('This is a required field.'),
         ];
 
         return $props;
@@ -156,14 +173,19 @@ class GiftCard extends AbstractDetail
 }
 ```
 
-`AbstractDetail::resolve()` already handles no `current_product`, tags the page (`cat_p`, `cat_p_<id>`) and sends
-`product_id`, `title`, `sku`, `type_id`, `price`, `original_price`, `is_on_sale`, `is_salable`, `images`,
-`tier_prices`, `rating`, `urls.add_to_cart`, `urls.add_to_wishlist`, `sections.*`, `breadcrumbs`, `labels`.
-Register it as `vendor_product_detail_giftcard` in group `product_page`, `available_on` your path, and copy the four
-slots (`gallery_after`, `price_after`, `product.info.additional` with `max_per_component` 1, `info_after`) with their
-full `allowed_groups` from `default_product_detail_simple`. Component: copy `Components/Product/Simple.vue` and
-`Simple.tsx` to `view/frontend/lynx/<vue|react>/src/Components/Product/GiftCard.*`, replace the quantity section
-with the type's fields and add the type's params to the `URLSearchParams` body. Details:
+`AbstractDetail::resolve()` already handles no `current_product`, tags the page (`cat_p`, `cat_p_<id>`) and always
+sends `product_id`, `title`, `sku`, `price`, `is_salable`, `rating`, `urls.add_to_cart`, `sections.add_to_cart` and
+the base `labels`. Only when the node's setting is on and Magento allows it: `urls.add_to_wishlist` (`show_wishlist`
+`yes` and the Wish List enabled) and `urls.add_to_compare` (`show_compare` `yes` and the product comparable), each
+with its section and labels. Helpers a type calls from `addTypeProps()` when it shows them: `addQuantityProps()`
+(`tier_prices` and the quantity labels) and `addRegularPrice()` (`original_price`, `is_on_sale`). It sends no
+`type_id`, images or breadcrumbs: those are Product Media's and Product's.
+Register it as `vendor_product_detail_giftcard` in group `product_page`, `available_on` your path, copy the three
+slots (`price_after`, `product.info.additional` with `max_per_component` 1, `info_after`) with their full
+`allowed_groups`, and the `show_wishlist` / `show_compare` settings, from `default_product_detail_simple`. Component:
+copy `Components/Product/Simple.vue` and `Simple.tsx` to
+`view/frontend/lynx/<vue|react>/src/Components/Product/GiftCard.*`, replace the quantity section with the type's
+fields and add the type's params to the `URLSearchParams` body. Details:
 [reference/giftcard-example.md](reference/giftcard-example.md#option-c).
 
 ### 4. Follow the add-to-cart response contract
@@ -178,8 +200,8 @@ Post to `urls.add_to_cart` with `X-Requested-With: XMLHttpRequest`, `credentials
 | `messages` | `[{type, text}]` taken out of the session (shown once) | `messagesStore.addServerMessage(type, text)` for each |
 | `backUrl` | Magento's: cart (redirect-to-cart setting) or product page (options missing) | `router.visit(backUrl)` |
 
-Never show a success message of your own; validate required fields before posting (`labels.requiredOptions`,
-`optionsStore.requestValidation(product_id)`).
+Never show a success message of your own; validate required fields before posting
+(`optionsStore.requestValidation(product_id)` when `collect(product_id).missing` is not empty).
 
 ### 5. Cards in product lists
 
@@ -202,10 +224,13 @@ For a type owned by another vendor, do it from the compatibility module with a p
 
 ### 6. Ship a starting layout (optional, recommended)
 
-A data patch depending on `OOCS\LynxCatalog\Setup\Patch\Data\InstallCatalogLayouts` copies the default design's
+A data patch depending on `OOCS\LynxCatalog\Setup\Patch\Data\SplitProductMedia` (which runs after
+`InstallCatalogLayouts`, so the simple layout already has the Product frame) copies the default design's
 `catalog_product_view_type_simple` row of `lynx_pagebuilder_layout` (`design_id` =
-`OOCS\LynxPageBuilder\Model\Design::DEFAULT_ID`) to your path, adding your options node to
-`$nodes[0]['slots']['product.info.additional']` (option b) or renaming `$nodes[0]` (option c). Write only to the
+`OOCS\LynxPageBuilder\Model\Design::DEFAULT_ID`) to your path. `$nodes[0]` is a Group whose
+`['slots']['default'][0]` is Product; the Product Detail is `$nodes[0]['slots']['default'][0]['slots']['detail'][0]`
+(Tabs and Related Products follow). Add your options node to that detail's `['slots']['product.info.additional']`
+(option b) or rename the detail (option c). Write only to the
 default design and only your own path: merchant designs inherit it, and their saved layouts are theirs. Full patch:
 [reference/giftcard-example.md](reference/giftcard-example.md#starting-layout).
 In layout rows `component` is `Vendor_GiftCardLynx/Components/GiftCardOptions` (slash); in `di.xml` it is `::`.
@@ -220,13 +245,17 @@ the default item is not enough, an item class in `Magento\Checkout\CustomerData\
 ### 8. Components around the Product Detail
 
 Built-ins using `catalog_product_view*` (Description, Specifications, Reviews, Custom Options, Product Attribute,
-Product Image Attribute, Related, Up-sell) appear on the new page automatically. Components from other modules that
-list exact paths (`catalog_product_view_type_simple`) need your path added to their `available_on` (as in 3a).
+Product Image Attribute, Related, Up-sell) appear on the new page automatically. Product, Product Media and every
+Product Detail list exact paths: add yours to Product and Product Media (step 3). Components from other modules that
+list exact paths (`catalog_product_view_type_simple`) need your path added to their `available_on` the same way.
 
 ## Rules
 
-- `available_on` of a Product Detail lists exact type paths; other product-page components use
-  `catalog_product_view*`. A wrong path makes the entry invisible in the editor.
+- `available_on` of Product, Product Media and a Product Detail lists exact type paths (never
+  `catalog_product_view*`); other product-page components use `catalog_product_view*`. A missing path makes the
+  entry invisible in the editor, so the page cannot hold a gallery or a frame.
+- Send a prop, label or URL only when the component will show it (setting on, config allows), as `AbstractDetail`
+  does for wish list and compare; the component renders those parts only when the URL is present.
 - Extend `AbstractDetail`, not `Detail\Simple`: plugins declared on `Simple` would also run for your type.
   A subclass needing another dependency repeats the nine parent arguments and calls `parent::__construct()`
   (see `Detail/Downloadable.php`).
@@ -235,8 +264,8 @@ list exact paths (`catalog_product_view_type_simple`) need your path added to th
 - Prices for display come from `priceInfo` / `PriceCurrencyInterface::convert()`; buy request values stay in the
   type's own unit.
 - Providers never read the customer session: product pages are in the full page cache.
-- Labels translated in PHP (`__()`), Magento's own phrases reused (`Add to Cart`, required-option message are already
-  in `AbstractDetail` labels); new phrases go to `i18n/en_US.csv`.
+- Labels translated in PHP (`__()`), Magento's own phrases reused (`Add to Cart`, `Adding...`, `Add to Wish List` are
+  already in `AbstractDetail` labels); new phrases go to `i18n/en_US.csv`.
 - Styling only with tokens and `l-` daisyUI classes (`l-btn`, `l-input`, `l-textarea`); no size below `text-sm`.
 - No `window`/`document` during setup/render (SSR). One root element.
 
