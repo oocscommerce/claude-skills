@@ -238,10 +238,10 @@ information. Full code in [reference/renderer-examples.md](reference/renderer-ex
 
 ### 6. Optional: express checkout button
 
-A separate PageBuilder component in group `express_checkout`, registered in the **global** `etc/di.xml` registry, that
+A separate PageBuilder component in group `express_checkout`, declared in the module's `etc/components/*.graphqls`, that
 the merchant drops into the **Express Checkout** slot (`express`) of **Checkout** (`default_checkout`, above the steps)
 or **Checkout Cart** (`default_checkout_cart`, under Proceed to Checkout). It has no `placeOrder`/`validate` props; it
-drives the quote through the checkout store. Registry entry, provider (`enabled` from the method's own
+drives the quote through the checkout store. Declaration, provider (`enabled` from the method's own
 `isAvailable($quote)`), store calls, terms and the cart-page limit: [reference/express-buttons.md](reference/express-buttons.md).
 
 ### 7. Build
@@ -254,13 +254,16 @@ bin/magento lynx:compile                                       # if the store us
 bin/magento cache:clean
 ```
 
+An express button's `.graphqls` changed later: `bin/magento cache:clean lynx_component` (and `lynx:compile components` if
+compiled), then `lynx:static:deploy` for its `Lynx.<TypeName>` type.
+
 ## Rules
 
 - **Pool scope: `etc/frontend/di.xml`.** Magento merges an area's array argument over the global one with
   `array_replace` per argument name; Lynx's own entries (`purchaseorder`, Braintree, Stripe, PayPal) are in
-  `etc/frontend/di.xml`, so one in `etc/di.xml` would be replaced and vanish. The express button's registry entry is the
-  opposite: global `etc/di.xml` (the registry is read in several areas).
-- **Path syntax differs:** pool `component` uses `Vendor_Module/Components/Foo`; the component registry uses
+  `etc/frontend/di.xml`, so one in `etc/di.xml` would be replaced and vanish. The express button is no pool entry: it is
+  declared in `etc/components/*.graphqls`.
+- **Path syntax differs:** pool `component` uses `Vendor_Module/Components/Foo`; the `.graphqls` `template` uses
   `Vendor_Module::Components/Express/Foo`.
 - **Online methods need an entry** or they are hidden; do not "fix" a missing method by marking it offline.
 - **No UI text in the component.** Every string comes from `config.labels` (translated in PHP).

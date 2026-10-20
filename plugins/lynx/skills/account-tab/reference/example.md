@@ -100,9 +100,7 @@ Vue, `view/frontend/lynx/vue/src/Components/AccountQuestions.vue`:
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3'
 
-type Item = { id: number; product: string; url: string; question: string; answer: string; date: string }
-
-withDefaults(defineProps<{ items?: Item[]; labels?: Record<string, string> }>(), {
+withDefaults(defineProps<Lynx.VendorAccountProductQuestions>(), {
     items: () => [],
     labels: () => ({}),
 })
@@ -130,9 +128,7 @@ React, `view/frontend/lynx/react/src/Components/AccountQuestions.tsx`:
 ```tsx
 import { Link } from '@inertiajs/react'
 
-type Item = { id: number; product: string; url: string; question: string; answer: string; date: string }
-
-export default function AccountQuestions({ items = [], labels = {} }: { items?: Item[]; labels?: Record<string, string> }) {
+export default function AccountQuestions({ items = [], labels = {} }: Lynx.VendorAccountProductQuestions) {
     return (
         <div className="grid w-full gap-6">
             <h1 className="text-2xl font-semibold text-base-content">{labels.title}</h1>

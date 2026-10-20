@@ -7,9 +7,7 @@ import { useState, type FormEvent } from 'react'
 import { router } from '@inertiajs/react'
 import { useFormKeyStore } from 'OOCS_LynxTheme/stores/global/formKeyStore'
 
-type Props = { urls: { post: string }; labels: Record<string, string> }
-
-export default function AskForm({ urls, labels }: Props) {
+export default function AskForm({ urls, labels = {} }: Lynx.VendorFaqAskForm) {
     const formKey = useFormKeyStore()
     const [question, setQuestion] = useState('')
     const [busy, setBusy] = useState(false)
@@ -161,6 +159,35 @@ needs ticking, the token otherwise. Same import in Vue and React. This import ne
 build: add it to your module's `<sequence>` and `composer.json` (`oocscommerce/module-lynx-re-captcha`) when you use it.
 
 ## Sections
+
+Declaration, `etc/components/AskForm.graphqls`: every key the provider returns is a field, or the server drops it.
+
+```graphql
+"Ask a question about the product"
+type VendorFaqAskForm @component(
+  code: "vendor_faq_ask_form"
+  template: "Vendor_Faq::Components/AskForm"
+  provider: "Vendor\\Faq\\Provider\\AskForm"
+  label: "Ask a Question"
+  group: "form"
+  icon: "ph-question"
+  zones: ["content"]
+) {
+  urls: VendorFaqAskFormUrls!
+  "Customer-data sections each endpoint invalidates"
+  sections: VendorFaqAskFormSections!
+  "Every string the form shows, translated by the provider"
+  labels: StringMap! @optional
+}
+
+type VendorFaqAskFormUrls {
+  post: String!
+}
+
+type VendorFaqAskFormSections {
+  post: [String!]!
+}
+```
 
 Provider (fragment):
 

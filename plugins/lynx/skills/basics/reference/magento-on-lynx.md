@@ -4,16 +4,18 @@
 
 | Role | Module | Package | Purpose |
 |---|---|---|---|
-| Foundation | `OOCS_LynxComponent` | `module-lynx-component` | Component registry (`components` pool), provider interfaces, `LayoutResolver`, `lynx_component` cache type. No PageBuilder dependency. |
+| Foundation | `OOCS_LynxComponent` | `module-lynx-component` | Component registry (`etc/components/*.graphqls` reader, generated `Lynx` types), provider interfaces, `LayoutResolver`, `lynx_component` cache type. No PageBuilder dependency. |
 | Foundation | `OOCS_LynxInertia` | `module-lynx-inertia` | `InertiaService` (pages, shared/deferred/optional props), JSON responses, asset versioning, SSR client (`SsrGate`, `SsrRenderer`), SRI |
 | Foundation | `OOCS_LynxPageBuilder` | `module-lynx-page-builder` | Designs, layouts, admin editor, preview/share, design settings, editable pages list (`PreviewPagebuilder`) |
 | Foundation | `OOCS_LynxTheme` | `module-lynx-theme` | `lynx_*` handles, `lynx_column`, Theme Fallback, page shell, global stores, build kits `@oocs/lynx-vue` / `@oocs/lynx-react`, build commands |
 | Components | `OOCS_LynxThemeComponent` | `module-lynx-theme-component` | Default components: header, footer, group, row, banner, carousel, heading, cart, checkout success, contact form… |
 | Components | `OOCS_LynxCatalog` | `module-lynx-catalog` | Product pages per type, category, search |
+| Components | `OOCS_LynxProductAlert` | `module-lynx-product-alert` | Price/Stock Alert links, stock alert unsubscribe page (needs `Magento_ProductAlert`) |
 | Components | `OOCS_LynxCustomer` | `module-lynx-customer` | Sign-in, registration, account area, orders, returns |
 | Components | `OOCS_LynxCms` | `module-lynx-cms` | CMS pages built with Lynx |
 | Checkout | `OOCS_LynxCheckout` | `module-lynx-checkout` | One-page checkout, payment/shipping renderer pools |
-| Checkout | `OOCS_LynxInStorePickup` | `module-lynx-in-store-pickup` | In-store pickup in the Lynx checkout |
+| Checkout | `OOCS_LynxCheckoutAgreements` | `module-lynx-checkout-agreements` | Terms and Conditions on checkout and PayPal review (needs `Magento_CheckoutAgreements`) |
+| Checkout | `OOCS_LynxMSI` | `module-lynx-msi` | MSI: in-store pickup in the Lynx checkout, listing stock from the website's stock |
 | Payments | `OOCS_LynxPaymentPayPal`, `OOCS_LynxPaymentBraintree`, `OOCS_LynxPaymentStripe` | `module-lynx-payment-*` | Payment renderers (Braintree, Stripe are add-ons) |
 | Integrations | `OOCS_LynxGoogleTag`, `OOCS_LynxReCaptcha` | `module-lynx-google-tag`, `module-lynx-re-captcha` | GA4 backstage component, reCAPTCHA for Lynx forms |
 | Performance | `OOCS_LynxCompiler`, `OOCS_LynxOptimize` | `module-lynx-compiler`, `module-lynx-optimize` | `lynx:compile`; skipping work Lynx does not need |

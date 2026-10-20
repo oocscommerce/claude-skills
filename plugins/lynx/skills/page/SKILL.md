@@ -26,7 +26,7 @@ a PageBuilder-built page (merchant-editable, with the design's header/footer) or
   a single-purpose form) that stand outside the store frame.
 - Work out the **full action name**: `<route id>_<controller>_<action>`, lowercase (route id `faq`, `Controller/Index/Index.php`
   → `faq_index_index`). It is the layout handle, the PageBuilder `path`, and the `lynx_` file name.
-- Look at a built-in page to imitate: `vendor/oocscommerce/module-lynx-customer/etc/di.xml` (pages + `available_on`),
+- Look at a built-in page to imitate: `vendor/oocscommerce/module-lynx-customer/etc/di.xml` (pages) and its `etc/components/*.graphqls` (`availableOn`),
   `.../Setup/Patch/Data/InstallCustomerLayouts.php`, `.../view/frontend/layout/lynx_*.xml`.
 
 ## Steps
@@ -173,7 +173,7 @@ Global `etc/di.xml` (the admin editor and the storefront preview router both rea
 
 Keys (`label`, `path`, `route`, `sample`, `type`, `group`, `sort_order`, `sample_data`) are explained in
 [reference/pages-argument.md](reference/pages-argument.md). For components that belong only to this page, add
-`faq_index_index` to their `available_on` (see **component**).
+`faq_index_index` to their `availableOn` (see **component**).
 
 Use `sample_data` = `true` when the real controller would redirect the editor away (needs a signed-in customer, a
 just-placed order, a token). The preview then skips the controller and providers implementing

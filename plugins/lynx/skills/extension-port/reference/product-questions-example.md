@@ -58,50 +58,50 @@ Drop `module-lynx-page-builder` / `module-lynx-customer` (and their `<sequence>`
 and no account section. In the extension's own `composer.json`:
 `"suggest": { "vendor/module-product-questions-lynx": "Storefront for stores running a Lynx theme" }`.
 
-## `etc/di.xml` (global)
+## `etc/components/Questions.graphqls`
 
-```xml
-<?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <type name="OOCS\LynxComponent\Model\Registry">
-        <arguments>
-            <argument name="components" xsi:type="array">
-                <item name="vendor_product_questions" xsi:type="array">
-                    <item name="component" xsi:type="string">Vendor_ProductQuestionsLynx::Components/Questions</item>
-                    <item name="provider" xsi:type="object">Vendor\ProductQuestionsLynx\Provider\Questions\Proxy</item>
-                    <item name="label" xsi:type="string">Product Questions</item>
-                    <item name="description" xsi:type="string">Approved questions and answers about the product, and the form to ask one</item>
-                    <item name="icon" xsi:type="string">ph-question</item>
-                    <item name="group" xsi:type="string">general</item>
-                    <item name="zones" xsi:type="array">
-                        <item name="content" xsi:type="string">content</item>
-                    </item>
-                    <item name="available_on" xsi:type="array">
-                        <item name="product" xsi:type="string">catalog_product_view*</item>
-                    </item>
-                    <item name="settings" xsi:type="array">
-                        <item name="lazy" xsi:type="array">
-                            <item name="label" xsi:type="string">Load when shown</item>
-                            <item name="description" xsi:type="string">Off: sent with the page and visible to search engines. On: fetched only when the block appears, for example when its tab is opened</item>
-                            <item name="type" xsi:type="string">toggle</item>
-                            <item name="default" xsi:type="boolean">false</item>
-                        </item>
-                        <item name="page_size" xsi:type="array">
-                            <item name="label" xsi:type="string">Questions shown</item>
-                            <item name="type" xsi:type="string">number</item>
-                            <item name="default" xsi:type="number">10</item>
-                            <item name="min" xsi:type="number">1</item>
-                            <item name="max" xsi:type="number">50</item>
-                            <item name="step" xsi:type="number">1</item>
-                        </item>
-                    </item>
-                </item>
-            </argument>
-        </arguments>
-    </type>
-</config>
+```graphql
+"Approved questions and answers about the product, and the form to ask one"
+type VendorProductQuestions @component(
+  code: "vendor_product_questions"
+  template: "Vendor_ProductQuestionsLynx::Components/Questions"
+  provider: "Vendor\\ProductQuestionsLynx\\Provider\\Questions"
+  label: "Product Questions"
+  group: "general"
+  icon: "ph-question"
+  zones: ["content"]
+  availableOn: ["catalog_product_view*"]
+) {
+  "Off: sent with the page and visible to search engines. On: fetched only when the block appears, for example when its tab is opened"
+  lazy: Boolean! @setting(label: "Load when shown", default: false)
+  page_size: Int! @setting(label: "Questions shown", default: 10, min: 1, max: 50, step: 1)
+  "Written first by the provider: missing means not fetched yet"
+  enabled: Boolean! @optional
+  product_id: Int! @optional
+  allow_guest: Boolean! @optional
+  items: [VendorProductQuestion!]! @optional
+  urls: VendorProductQuestionsUrls! @optional
+  "Customer-data sections a post invalidates, from the extension's sections.xml"
+  sections: [String!]! @optional
+  labels: StringMap! @optional
+}
+
+type VendorProductQuestion {
+  id: Int!
+  question: String!
+  answer: String!
+  nickname: String!
+  date: String!
+}
+
+type VendorProductQuestionsUrls {
+  post: String!
+  login: String!
+}
 ```
+
+Every key the provider returns is declared: the server drops the others. `bin/magento lynx:static:deploy` turns this
+into `Lynx.VendorProductQuestions` and `Lynx.VendorProductQuestion` for the components.
 
 ## `Provider/Questions.php`
 
@@ -236,33 +236,18 @@ import { useCustomerDataStore } from 'OOCS_LynxTheme/stores/global/customerDataS
 import { useFormKeyStore } from 'OOCS_LynxTheme/stores/global/formKeyStore'
 import { useMessagesStore } from 'OOCS_LynxTheme/stores/global/messagesStore'
 
-type Item = { id: number; question: string; answer: string; nickname: string; date: string }
 type Pending = { product_id: number; question: string }
 
-const props = withDefaults(
-    defineProps<{
-        lazy: boolean
-        _key?: string
-        // Written first by the provider: undefined means not fetched yet
-        enabled?: boolean
-        product_id?: number
-        allow_guest?: boolean
-        items?: Item[]
-        urls?: { post: string; login: string }
-        sections?: string[]
-        labels?: Record<string, string>
-    }>(),
-    {
-        _key: '',
-        enabled: undefined,
-        product_id: 0,
-        allow_guest: false,
-        items: () => [],
-        urls: () => ({ post: '', login: '' }),
-        sections: () => [],
-        labels: () => ({}),
-    }
-)
+const props = withDefaults(defineProps<Lynx.VendorProductQuestions>(), {
+    _key: '',
+    enabled: undefined,
+    product_id: 0,
+    allow_guest: false,
+    items: () => [],
+    urls: () => ({ post: '', login: '' }),
+    sections: () => [],
+    labels: () => ({}),
+})
 
 const customerData = useCustomerDataStore()
 const formKey = useFormKeyStore()
@@ -394,21 +379,7 @@ import { useCustomerDataStore } from 'OOCS_LynxTheme/stores/global/customerDataS
 import { useFormKeyStore } from 'OOCS_LynxTheme/stores/global/formKeyStore'
 import { useMessagesStore } from 'OOCS_LynxTheme/stores/global/messagesStore'
 
-type Item = { id: number; question: string; answer: string; nickname: string; date: string }
 type Pending = { product_id: number; question: string }
-
-type Props = {
-    lazy: boolean
-    _key?: string
-    // Written first by the provider: undefined means not fetched yet
-    enabled?: boolean
-    product_id?: number
-    allow_guest?: boolean
-    items?: Item[]
-    urls?: { post: string; login: string }
-    sections?: string[]
-    labels?: Record<string, string>
-}
 
 // Stable defaults, so hooks do not see a new dependency on every render
 const EMPTY_LIST: never[] = []
@@ -425,7 +396,7 @@ export default function Questions({
     urls = DEFAULT_URLS,
     sections = EMPTY_LIST,
     labels = EMPTY_MAP,
-}: Props) {
+}: Lynx.VendorProductQuestions) {
     const customerData = useCustomerDataStore()
     const formKey = useFormKeyStore()
     const messages = useMessagesStore()

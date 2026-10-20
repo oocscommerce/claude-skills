@@ -129,10 +129,10 @@ export default function DeliveryDate({ config, ref }: Props) {
 
 ## How In-Store Pickup uses the same pieces
 
-`OOCS_LynxInStorePickup` (depends on Magento's Inventory In-Store Pickup modules; disable it on a store without MSI):
+`OOCS_LynxMSI` (depends on Magento's Inventory In-Store Pickup modules; disable it on a store without MSI):
 
-1. **Pool entry** (`etc/frontend/di.xml`): carrier `instore` -> `OOCS_LynxInStorePickup/Components/StorePickup`,
-   config `OOCS\LynxInStorePickup\Model\PickupLocations`. Plugin `OOCS\LynxInStorePickup\Plugin\SavePickupLocation`
+1. **Pool entry** (`etc/frontend/di.xml`): carrier `instore` -> `OOCS_LynxMSI/Components/StorePickup`,
+   config `OOCS\LynxMSI\Model\PickupLocations`. Plugin `OOCS\LynxMSI\Plugin\SavePickupLocation`
    on `OOCS\LynxCheckout\Provider\Checkout\Step\ShippingMethod`, `sortOrder="10"`.
 2. **Config** (`PickupLocations::getConfig()`): not the stores themselves, but `search_url` (anonymous core REST
    `GET /V1/inventory/in-store-pickup/pickup-locations/`), `website_code`, `skus` (leaf items only), `page_size`,

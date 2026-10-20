@@ -5,13 +5,13 @@ description: Adds a custom step to the Lynx one-page checkout (OOCS_LynxCheckout
 
 # Lynx checkout step
 
-Produces a new step of the Lynx checkout: registry entry (global `etc/di.xml`), a step provider that saves to the
+Produces a new step of the Lynx checkout: a component declaration (`etc/components/<Template>.graphqls`), a step provider that saves to the
 quote, a heading label added to the container, and the step component in Vue and React. The merchant places the step
 in PageBuilder; the storage and the copy to the order are plain Magento.
 
 ## Before you start
 
-- Read **basics** (module layout, aliases, build), **component** (registry keys) and **provider**
+- Read **basics** (module layout, aliases, build), **component** (the `.graphqls` declaration) and **provider**
   (`AbstractComponentProvider`, `optional()`).
 - Check a smaller fit first: input for one carrier -> **shipping-method**; for one payment method ->
   **payment-method**; content next to the checkout -> a normal component in the Checkout's **Below Order
@@ -56,35 +56,32 @@ Checkout (default_checkout)
 Storage: quote + `sales_order` columns in `etc/db_schema.xml` (+ whitelist) and `etc/fieldset.xml`
 (`sales_convert_quote` -> `to_order`). Full files in [reference/delivery-notes-example.md](reference/delivery-notes-example.md).
 
-### 2. Register the step - global `etc/di.xml`
+### 2. Declare the step - `etc/components/DeliveryNotes.graphqls`
 
-```xml
-<type name="OOCS\LynxComponent\Model\Registry">
-    <arguments>
-        <argument name="components" xsi:type="array">
-            <item name="vendor_checkout_step_delivery_notes" xsi:type="array">
-                <item name="component" xsi:type="string">Vendor_DeliveryNotes::Components/Checkout/Step/DeliveryNotes</item>
-                <item name="group" xsi:type="string">checkout_step</item>
-                <item name="icon" xsi:type="string">ph-note-pencil</item>
-                <item name="provider" xsi:type="object">Vendor\DeliveryNotes\Provider\DeliveryNotes\Proxy</item>
-                <item name="label" xsi:type="string">Delivery Instructions</item>
-                <item name="description" xsi:type="string">Instructions for the courier and a leave-at-door choice, saved on the order</item>
-                <item name="zones" xsi:type="array">
-                    <item name="content" xsi:type="string">content</item>
-                </item>
-                <item name="available_on" xsi:type="array">
-                    <item name="checkout" xsi:type="string">checkout_index_index</item>
-                </item>
-                <item name="settings" xsi:type="array"/>
-            </item>
-        </argument>
-    </arguments>
-</type>
+```graphql
+"Instructions for the courier and a leave-at-door choice, saved on the order"
+type VendorCheckoutStepDeliveryNotes @component(
+  code: "vendor_checkout_step_delivery_notes"
+  template: "Vendor_DeliveryNotes::Components/Checkout/Step/DeliveryNotes"
+  provider: "Vendor\\DeliveryNotes\\Provider\\DeliveryNotes"
+  label: "Delivery Instructions"
+  group: "checkout_step"
+  icon: "ph-note-pencil"
+  zones: ["content"]
+  availableOn: ["checkout_index_index"]
+) {
+  instructions: String! @optional
+  leave_at_door: Boolean! @optional
+  max_length: Int! @optional
+  "Every string the step shows, translated by the provider"
+  labels: StringMap! @optional
+}
 ```
 
 `group` must be `checkout_step` (the only group the **Before Shipping Method** and **Before Payment** slots accept,
-once per component). The registered name
-is the name `Process` and the store look the step up by.
+once per component). The `code` is the name `Process` and the store look the step up by. Every prop `resolve()`
+returns is declared `@optional` (undefined until the step is first reached); `Process` filters the step's props
+through the `.graphqls` like a page render, so an undeclared key never reaches the component.
 
 ### 3. The provider - `Provider/DeliveryNotes.php`
 
@@ -206,10 +203,13 @@ your own values in the component), `refreshTotals()`.
 ```bash
 bin/magento module:enable Vendor_DeliveryNotes && bin/magento setup:upgrade
 bin/magento lynx:workspace:setup OOCS_LynxVue OOCS_LynxReact
-bin/magento lynx:static:deploy
+bin/magento lynx:static:deploy   # also writes the Lynx.* types from the .graphqls
 bin/magento lynx:compile        # if the store uses compiled config
 bin/magento cache:clean
 ```
+
+After a later `.graphqls` change: `bin/magento cache:clean lynx_component` (and `lynx:compile components` if compiled),
+then `lynx:static:deploy`.
 
 The step appears only once the merchant places it: PageBuilder > Checkout page > select **Checkout** > **Add to
 Before Payment** (or **Before Shipping Method**) > the step, in the merchant's own design (the default design is
@@ -218,13 +218,15 @@ read-only). Put this in the module's install guide; never write the merchant's c
 ## Modifying the built-in steps
 
 Address, Shipping Method and Payment are not layout nodes: the container renders them in that fixed order, their
-registry entries are `hidden` (kept for `Process` to find the providers). Their look follows the Checkout component's
+declarations are `hidden` (kept for `Process` to find the providers). Their look follows the Checkout component's
 settings (**Steps** group: style, numbering, Continue width, how rates and methods are listed).
 
 - Add props or change labels: `afterResolve` plugin on `OOCS\LynxCheckout\Provider\Checkout\Step\ShippingAddress`,
-  `...\ShippingMethod` or `...\Payment`.
+  `...\ShippingMethod` or `...\Payment`. A new prop must also be declared with `extend type` (e.g.
+  `extend type CheckoutStepShippingMethod { vendor_note: String @optional }`); new keys inside `labels`
+  (`StringMap`) need nothing.
 - Save more when a step is left: `beforeSave` plugin on `ShippingAddress` or `ShippingMethod` reading your keys from
-  `$draft` (e.g. `OOCS\LynxInStorePickup\Plugin\SavePickupLocation`). `Payment` has no `save()`.
+  `$draft` (e.g. `OOCS\LynxMSI\Plugin\SavePickupLocation`). `Payment` has no `save()`.
 - Change markup: override the step's `.vue` / `.tsx` in a theme; keep `register()`, `data-step` and the `data()` keys
   the providers read (`shippingAddress`, `shippingMethod`...).
 - Address fields: merchant setting **Address Fields** of the Checkout component; no code.
@@ -240,11 +242,13 @@ settings (**Steps** group: style, numbering, Continue width, how rates and metho
 - **`$draft` is browser input** and holds every step's data: check types/lengths, use vendor-prefixed keys that cannot
   clash (`vendorDeliveryInstructions`).
 - **Reject with `LocalizedException`** and a translated message; the shopper returns to your step.
-- **Node settings never reach the provider** in a step request; settings needing provider resolution (`_i18n`, `image`,
-  `url`) are unusable on a step. Plain settings reach the component as props.
+- **Node settings never reach the provider** in a step request; settings needing provider resolution (`Localized*`,
+  `Image`, `Url`) are unusable on a step. Plain settings reach the component as props.
 - **Unsaved input is lost on reload**: only the built-in draft fields persist in `localStorage`; the step re-reads the
   quote when reached again.
-- **Registry entry global `etc/di.xml`**; the heading plugin may live in `etc/frontend/di.xml`.
+- **Declare every prop the provider returns** in the `.graphqls`; use `Lynx.VendorCheckoutStepDeliveryNotes`
+  in the component instead of a hand-written type. The heading plugin may live in `etc/frontend/di.xml`; its key goes
+  into the container's `labels` (`StringMap`), which needs no declaration.
 - **No UI text in the component**; reuse Magento phrases ("Edit", "None", "Please enter less or equal than %1
   symbols.").
 - **Ship `.vue` and `.tsx`** (a theme lacking the file skips the step). Tokens and `l-` classes only, nothing below
@@ -265,5 +269,5 @@ settings (**Steps** group: style, numbering, Continue width, how rates and metho
 ## Reference
 
 - [reference/delivery-notes-example.md](reference/delivery-notes-example.md) - complete Delivery Instructions module:
-  storage, provider, heading plugin, registry, Vue + React component, translations.
+  storage, provider, heading plugin, `.graphqls`, Vue + React component, translations.
 - https://docs.oocscommerce.com/lynx/developer/checkout-steps

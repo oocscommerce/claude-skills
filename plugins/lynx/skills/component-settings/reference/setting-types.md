@@ -1,70 +1,64 @@
 # Setting types reference
 
-Declared under `settings` of a `components` entry (`OOCS\LynxComponent\Model\Registry`, global `etc/di.xml`).
-The editor picks the field by `type` (`text` when unknown).
+Settings are fields with `@setting` on a component's `type` in `etc/components/<Template>.graphqls`. The field type picks
+the editor control; a type no control shows is an error when the definitions load.
 
-## Keys every setting takes
+## `@setting` arguments
 
-| Key | XML type | What it does |
-|---|---|---|
-| `label` | `string` | Field label |
-| `type` | `string` | One of the types below |
-| `default` | per type | Value of a new node, and what the server fills in when the node has none |
-| `description` | `string` | Help text behind a **?** icon next to the label (top-level settings) |
-| `depends` | `array` | Show only while other settings hold given values (top-level settings only) |
+| Argument | What it does |
+|---|---|
+| `label` | Field label (required) |
+| `default` | Value of a new node, and what the server fills in when the node has none |
+| `min`, `max`, `step` | Number range (`Int`/`Float`) |
+| `tab` | Group of collapsible rows in the panel; settings without one go to **General**, first |
+| `source` | `String` field: class or virtual type implementing `OOCS\LynxComponent\Api\OptionSourceInterface` |
+| `labelField` | Array setting: the sub-field whose value titles each item |
+| `dependsOn` | Show only while other settings hold given values (top-level settings only) |
+| `control` | An editor control the field type does not pick (one added to the SettingsPanel) |
+
+The string above a field is its description: help text behind a **?** icon next to the label (top-level settings).
+Declare settings with `!`.
 
 ## Type table
 
-| Type | Field | `default` | Prop value | Extra keys |
+| Field type | Control | `default` | Prop value | Extra arguments |
 |---|---|---|---|---|
-| `text` | One-line input | `string` | string | `placeholder` |
-| `textarea` | Multi-line input | `string` | string | `placeholder`, `rows` (default 3), `mono` (`1`: monospace, keeps whitespace) |
-| `richtext` | Rich text editor (bold, links, lists) | `string` (use CDATA for HTML) | HTML string | |
-| `text_i18n` | `text` + **Translations** dialog | `string` | `{"default": "…", "<locale>": "…"}` | as `text` |
-| `textarea_i18n` | `textarea` + **Translations** | `string` | same | as `textarea` |
-| `richtext_i18n` | `richtext` + **Translations** | `string` | same, HTML texts | |
-| `number` | Slider + number box, value clamped | `number` | number | `min` (0), `max` (500), `step` (1) |
-| `toggle` | On/off switch | `boolean` | boolean | |
-| `select` | Dropdown | `string` | option `value` | `options` or `source` |
-| `color` | Swatch + picker, design palette first | `string` | `#rrggbb`, `rgba(…)` or empty | |
-| `image` | Media gallery picker, upload, crop (jpg/png) | `string` | path under `pub/media` | |
-| `url` | Link input | `string` | store path or absolute URL | `placeholder` (default "about-us or https://…") |
-| `array` | Sortable list, each item expandable | `array` | array of objects | `fields`, `labelField` |
+| `String`, `Text` | One-line input | `""` | string | |
+| `Textarea` | Multi-line input | `""` | string | |
+| `RichText` | Rich text editor (bold, links, lists) | `""` (HTML) | HTML string | |
+| `LocalizedText` | `Text` + **Translations** dialog | `""` | `{"default": "…", "<locale>": "…"}` | |
+| `LocalizedTextarea` | `Textarea` + **Translations** | `""` | same | |
+| `LocalizedRichText` | `RichText` + **Translations** | `""` | same, HTML texts | |
+| `Int`, `Float` | Slider + number box, value clamped | number | number | `min` (0), `max` (500), `step` (1) |
+| `Boolean` | On/off switch | `true` / `false` | boolean | |
+| enum | Dropdown | `"value"` | option value | |
+| `String` + `source` | Dropdown, options from code | `"value"` | option value | `source` |
+| `Color` | Swatch + picker, design palette first | `""` | `#rrggbb`, `rgba(…)` or empty | |
+| `Image` | Media gallery picker, upload, crop (jpg/png) | `""` | path under `pub/media` | |
+| `Url` | Link input | `""` | store path or absolute URL | |
+| `[Input!]!` (list of an `input`) | Sortable list, each item expandable | `[]` | array of objects | `labelField` |
 
-## text, textarea
+## String, Textarea
 
-```xml
-<item name="note" xsi:type="array">
-    <item name="label" xsi:type="string">Note</item>
-    <item name="type" xsi:type="string">textarea</item>
-    <item name="default" xsi:type="string"></item>
-    <item name="placeholder" xsi:type="string">Optional</item>
-    <item name="rows" xsi:type="number">4</item>
-</item>
+```graphql
+"Shown under the button"
+note: Textarea! @setting(label: "Note", default: "")
 ```
 
-For values that are codes (SKUs, anchors, cookie names, CSS with `mono` `1`), not shopper-facing text.
+For values that are codes (SKUs, anchors, cookie names, CSS), not shopper-facing text.
 
-## richtext
+## RichText
 
-```xml
-<item name="content" xsi:type="array">
-    <item name="label" xsi:type="string">Content</item>
-    <item name="type" xsi:type="string">richtext</item>
-    <item name="default" xsi:type="string"><![CDATA[<p>Write something.</p>]]></item>
-</item>
+```graphql
+content: RichText! @setting(label: "Content", default: "<p>Write something.</p>")
 ```
 
 Render with `v-html` (Vue) / `dangerouslySetInnerHTML={{ __html: content }}` (React).
 
-## text_i18n, textarea_i18n, richtext_i18n
+## LocalizedText, LocalizedTextarea, LocalizedRichText
 
-```xml
-<item name="title" xsi:type="array">
-    <item name="label" xsi:type="string">Title</item>
-    <item name="type" xsi:type="string">text_i18n</item>
-    <item name="default" xsi:type="string">Mid-Season Sale</item>
-</item>
+```graphql
+title: LocalizedText! @setting(label: "Title", default: "Mid-Season Sale")
 ```
 
 Stored value (the merchant types locale codes of store views in the Translations dialog):
@@ -76,66 +70,54 @@ Stored value (the merchant types locale codes of store views in the Translations
 Provider: `$props['title'] = $this->localizedText->get($props['title']);` with
 `OOCS\LynxComponent\Helper\LocalizedText`. `get(mixed $value): string` picks the current locale's entry, else
 `default`, accepts a plain string too (server default, old layouts), returns `''` for empty, and passes the result
-through `__()` so dictionary phrases translate. For `richtext_i18n` the dictionary key is the whole HTML string.
-The component declares `title: string`.
+through `__()` so dictionary phrases translate. For `LocalizedRichText` the dictionary key is the whole HTML string.
+The generated prop type is `string`.
 
-## number
+## Int, Float
 
-```xml
-<item name="limit" xsi:type="array">
-    <item name="label" xsi:type="string">Products</item>
-    <item name="type" xsi:type="string">number</item>
-    <item name="default" xsi:type="number">8</item>
-    <item name="min" xsi:type="number">1</item>
-    <item name="max" xsi:type="number">24</item>
-    <item name="step" xsi:type="number">1</item>
-</item>
+```graphql
+limit: Int! @setting(label: "Products", default: 8, min: 1, max: 24, step: 1)
 ```
 
-## toggle
+## Boolean
 
-```xml
-<item name="show_title" xsi:type="array">
-    <item name="label" xsi:type="string">Show Title</item>
-    <item name="type" xsi:type="string">toggle</item>
-    <item name="default" xsi:type="boolean">true</item>
-</item>
+```graphql
+show_title: Boolean! @setting(label: "Show Title", default: true)
 ```
 
-## select
+## Select
 
-Static options (item names are free; `value` is stored):
+Static options: an `enum`, in declaration order; `@label` is the option label. Value names are `SCREAMING_SNAKE_CASE`
+(Magento's coding standard checks `.graphqls`) and store lowercased (`MD` stores `"md"`); `@value` when the stored
+value is not the lowercased name. An on/off setting is a `Boolean`, never a Yes/No select:
 
-```xml
-<item name="size" xsi:type="array">
-    <item name="label" xsi:type="string">Size</item>
-    <item name="type" xsi:type="string">select</item>
-    <item name="default" xsi:type="string">md</item>
-    <item name="options" xsi:type="array">
-        <item name="sm" xsi:type="array">
-            <item name="value" xsi:type="string">sm</item>
-            <item name="label" xsi:type="string">Small</item>
-        </item>
-        <item name="md" xsi:type="array">
-            <item name="value" xsi:type="string">md</item>
-            <item name="label" xsi:type="string">Medium</item>
-        </item>
-    </item>
-</item>
+```graphql
+enum VendorSize {
+  SM @label(text: "Small")
+  MD @label(text: "Medium")
+}
+enum VendorRatio {
+  AUTO @label(text: "Auto")
+  V16_9 @label(text: "16:9") @value(text: "16_9")
+}
+size: VendorSize! @setting(label: "Size", default: "md")
+ratio: VendorRatio! @setting(label: "Ratio", default: "auto")
 ```
 
-Another module can add an option by merging an item under the same path in its own global `etc/di.xml`.
+Enum names are global: prefix yours, or reuse one from `OOCS_LynxComponent/etc/components/enums.graphqls` (`Align`,
+`Justify`, `TextAlign`, `Rounded`…). Another module adds an option with
+`extend enum VendorSize { LG @label(text: "Large") }`.
 
-Options from code: `source` = object implementing `OOCS\LynxComponent\Api\OptionSourceInterface`
-(`toOptionArray(): array<int, array{value: string, label: string}>`), as `\Proxy`. `Registry::getComponents()`
-replaces `source` by `options` (also inside `array` `fields`). A `Magento\Framework\Data\OptionSourceInterface` is
-ignored.
+Options from code: `source` = class implementing `OOCS\LynxComponent\Api\OptionSourceInterface`
+(`toOptionArray(): array<int, array{value: string, label: string}>`), no `\Proxy`: `Registry` creates it only when it
+builds the editor's component list, and replaces `source` by `options` (also inside array sub-fields). A
+`Magento\Framework\Data\OptionSourceInterface` is ignored.
 
-```xml
-<item name="source" xsi:type="object">Vendor\Module\Model\Config\Source\ProductAttribute\Proxy</item>
+```graphql
+attribute: String! @setting(label: "Attribute", default: "sku", source: "Vendor\\Module\\Model\\Config\\Source\\ProductAttribute")
 ```
 
-One class, different arguments: a virtual type and a proxy virtual type of it (a virtual type has no generated Proxy).
+One class, different arguments: a virtual type in `etc/di.xml`, named in `source`.
 
 ```xml
 <virtualType name="VendorModuleImageAttributeSource" type="Vendor\Module\Model\Config\Source\ProductAttribute">
@@ -143,37 +125,27 @@ One class, different arguments: a virtual type and a proxy virtual type of it (a
         <argument name="images" xsi:type="boolean">true</argument>
     </arguments>
 </virtualType>
-<virtualType name="VendorModuleImageAttributeSourceProxy" type="Vendor\Module\Model\Config\Source\ProductAttribute\Proxy">
-    <arguments>
-        <argument name="instanceName" xsi:type="string">VendorModuleImageAttributeSource</argument>
-    </arguments>
-</virtualType>
 ```
 
-Then `<item name="source" xsi:type="object">VendorModuleImageAttributeSourceProxy</item>`. (Built-in example:
-`OOCSLynxCatalogProductImageAttributeSourceProxy` in `OOCS_LynxCatalog` `etc/di.xml`.)
+```graphql
+attribute: String! @setting(label: "Attribute", default: "image", source: "VendorModuleImageAttributeSource")
+```
 
-## color
+(Built-in example: `ImageAttribute.graphqls` and the source virtual types in `OOCS_LynxCatalog` `etc/di.xml`.)
 
-```xml
-<item name="color" xsi:type="array">
-    <item name="label" xsi:type="string">Text Color</item>
-    <item name="description" xsi:type="string">Empty uses the default</item>
-    <item name="type" xsi:type="string">color</item>
-    <item name="default" xsi:type="string"></item>
-</item>
+## Color
+
+```graphql
+"Empty uses the default"
+color: Color! @setting(label: "Text Color", default: "")
 ```
 
 Keep the default empty and fall back to a theme token class when empty, apply the value with an inline `style`.
 
-## image
+## Image
 
-```xml
-<item name="image" xsi:type="array">
-    <item name="label" xsi:type="string">Image</item>
-    <item name="type" xsi:type="string">image</item>
-    <item name="default" xsi:type="string"></item>
-</item>
+```graphql
+image: Image! @setting(label: "Image", default: "")
 ```
 
 Stored: `wysiwyg/sale/hero.jpg` (relative to `pub/media`). Provider:
@@ -181,14 +153,10 @@ Stored: `wysiwyg/sale/hero.jpg` (relative to `pub/media`). Provider:
 `OOCS\LynxThemeComponent\Helper\MediaUrl` (`url(string $value): string`: current store's media base URL + path;
 empty, `/…` and `http(s)://…` unchanged).
 
-## url
+## Url
 
-```xml
-<item name="cta_url" xsi:type="array">
-    <item name="label" xsi:type="string">Button URL</item>
-    <item name="type" xsi:type="string">url</item>
-    <item name="default" xsi:type="string">sale</item>
-</item>
+```graphql
+cta_url: Url! @setting(label: "Button URL", default: "sale")
 ```
 
 Stored: `about-us`, `/checkout/cart`, `#top`, `mailto:…`, `https://…`. Provider:
@@ -197,44 +165,27 @@ Stored: `about-us`, `/checkout/cart`, `#top`, `mailto:…`, `https://…`. Provi
 included when **Add Store Code to URLs** is on; empty, `#…` and any `scheme:` unchanged). Render with Inertia `Link`;
 a plain `<a>` only for an internal link that must reload the page or open in a new tab.
 
-## array
+## Array
 
-```xml
-<item name="links" xsi:type="array">
-    <item name="label" xsi:type="string">Links</item>
-    <item name="type" xsi:type="string">array</item>
-    <item name="labelField" xsi:type="string">label</item>
-    <item name="default" xsi:type="array">
-        <item name="0" xsi:type="array">
-            <item name="label" xsi:type="string">About Us</item>
-            <item name="url" xsi:type="string">about-us</item>
-            <item name="new_tab" xsi:type="boolean">false</item>
-        </item>
-    </item>
-    <item name="fields" xsi:type="array">
-        <item name="label" xsi:type="array">
-            <item name="label" xsi:type="string">Label</item>
-            <item name="type" xsi:type="string">text_i18n</item>
-        </item>
-        <item name="url" xsi:type="array">
-            <item name="label" xsi:type="string">URL</item>
-            <item name="type" xsi:type="string">url</item>
-        </item>
-        <item name="new_tab" xsi:type="array">
-            <item name="label" xsi:type="string">Open in New Tab</item>
-            <item name="type" xsi:type="string">toggle</item>
-        </item>
-    </item>
-</item>
+A list of an `input` type; each `input` field is a sub-field with its own `@setting(label: …)`:
+
+```graphql
+input VendorLinksItem {
+  label: LocalizedText! @setting(label: "Label")
+  url: Url! @setting(label: "URL")
+  new_tab: Boolean! @setting(label: "Open in New Tab")
+}
+
+links: [VendorLinksItem!]! @setting(label: "Links", default: [{label: "About Us", url: "about-us", new_tab: false}], labelField: "label")
 ```
 
-- `labelField`: sub-field whose value titles each item (for an `_i18n` field, its `default`); otherwise "Item N".
-- Sub-fields take any type, including nested `array` and `select` with `source`. They show only their `label`
-  (no `description` tooltip) and ignore `depends`.
-- A new item starts with: toggle `false`, number its `min` (or 0), nested array `[]`, anything else the sub-field's
-  `default` (or `''`). A toggle's or number's `default` is not used for new items.
+- `labelField`: sub-field whose value titles each item (for a localized field, its `default`); otherwise "Item N".
+- Sub-fields take any type, including nested lists and `String` with `source`. They show only their `label`
+  (no **?** tooltip) and ignore `dependsOn`.
+- A new item starts with: `Boolean` `false`, number its `min` (or 0), nested list `[]`, anything else the
+  sub-field's `default` (or `''`). A `Boolean`'s or number's `default` is not used for new items.
 - The server fills only top-level defaults: a provider reads sub-fields with a fallback (`$link['url'] ?? ''`).
-- Empty list default: `<item name="default" xsi:type="array"/>`.
+- Empty list default: `default: []`.
 
 Provider loop:
 
@@ -245,33 +196,22 @@ foreach ($props['links'] as $i => $link) {
 }
 ```
 
-Component type: `links: Array<{ label: string; url: string; new_tab: boolean }>`.
+The component receives an array of objects shaped like the `input`.
 
-## depends
+## dependsOn
 
-```xml
-<item name="label" xsi:type="array">
-    <item name="label" xsi:type="string">Label</item>
-    <item name="type" xsi:type="string">text_i18n</item>
-    <item name="default" xsi:type="string"></item>
-    <item name="depends" xsi:type="array">
-        <item name="show_label" xsi:type="string">true</item>
-        <item name="display" xsi:type="array">
-            <item name="card" xsi:type="string">card</item>
-            <item name="list" xsi:type="string">list</item>
-        </item>
-    </item>
-</item>
+```graphql
+label: LocalizedText! @setting(label: "Label", default: "", dependsOn: {show_label: "true", display: ["card", "list"]})
 ```
 
-AND across keys, OR within an array, compared as strings. A hidden setting is removed from the node on save and is
-rendered with its `default`. No need to repeat the condition in the `description`.
+AND across keys, OR within a list, compared as strings. A hidden setting is removed from the node on save and is
+rendered with its `default`. No need to repeat the condition in the description.
 
 ## Defaults: where they apply
 
 | Where | What happens |
 |---|---|
-| Editor, new node | Saved with every top-level default (`_i18n` string defaults wrapped as `{default}`) |
+| Editor, new node | Saved with every top-level default (localized string defaults wrapped as `{default}`) |
 | Editor, opening an old node | Missing top-level settings get their default in the panel; Save writes them |
-| Server, every render | `LayoutResolver` adds `Registry::getDefaults(<name>)` under the stored props before the provider runs, nodes inserted by code included |
+| Server, every render | `LayoutResolver` adds `Registry::getDefaults(<code>)` under the stored props before the provider runs, nodes inserted by code included |
 | Array items | Only the editor's new-item defaults above; nothing on the server |

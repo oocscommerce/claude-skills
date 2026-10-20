@@ -10,7 +10,7 @@ app/code/Vendor/DeliveryNotes/
 │   ├── module.xml
 │   ├── db_schema.xml (+ db_schema_whitelist.json)
 │   ├── fieldset.xml
-│   ├── di.xml                     the step component (global)
+│   ├── components/DeliveryNotes.graphqls  the step component and its props
 │   └── frontend/di.xml            the heading plugin
 ├── i18n/en_US.csv
 ├── Plugin/AddStepHeading.php
@@ -226,12 +226,12 @@ class AddStepHeading
 </config>
 ```
 
-## Registering the step - `etc/di.xml` (global)
+## Declaring the step - `etc/components/DeliveryNotes.graphqls`
 
-As in SKILL.md step 2: item `vendor_checkout_step_delivery_notes`, `component`
+As in SKILL.md step 2: `code` `vendor_checkout_step_delivery_notes`, `template`
 `Vendor_DeliveryNotes::Components/Checkout/Step/DeliveryNotes`, `group` `checkout_step`, `provider`
-`Vendor\DeliveryNotes\Provider\DeliveryNotes\Proxy`, `zones` `content`, `available_on` `checkout_index_index`,
-`settings` empty array.
+`"Vendor\\DeliveryNotes\\Provider\\DeliveryNotes"`, `zones` `["content"]`, `availableOn` `["checkout_index_index"]`, no
+settings; fields `instructions`, `leave_at_door`, `max_length`, `labels`, each `@optional`.
 
 ## The component
 
@@ -247,15 +247,12 @@ import { useCheckoutStore } from 'OOCS_LynxCheckout/stores/checkoutStore'
 import { useAnalyticsStore } from 'OOCS_LynxTheme/stores/global/analyticsStore'
 
 // From Provider\DeliveryNotes, undefined until the step is first reached
-const props = withDefaults(
-    defineProps<{
-        instructions?: string
-        leave_at_door?: boolean
-        max_length?: number
-        labels?: Record<string, string>
-    }>(),
-    { instructions: undefined, leave_at_door: false, max_length: 250, labels: () => ({}) }
-)
+const props = withDefaults(defineProps<Lynx.VendorCheckoutStepDeliveryNotes>(), {
+    instructions: undefined,
+    leave_at_door: false,
+    max_length: 250,
+    labels: () => ({}),
+})
 
 const checkout = useCheckoutStore()
 const form = reactive({ instructions: '', leaveAtDoor: false })
@@ -360,12 +357,7 @@ import { useCheckoutStore } from 'OOCS_LynxCheckout/stores/checkoutStore'
 import { useAnalyticsStore } from 'OOCS_LynxTheme/stores/global/analyticsStore'
 
 // From Provider\DeliveryNotes, undefined until the step is first reached
-type Props = {
-    instructions?: string
-    leave_at_door?: boolean
-    max_length?: number
-    labels?: Record<string, string>
-}
+type Props = Lynx.VendorCheckoutStepDeliveryNotes
 
 const EMPTY_MAP: Record<string, never> = {}
 

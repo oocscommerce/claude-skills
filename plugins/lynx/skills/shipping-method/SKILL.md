@@ -13,8 +13,8 @@ Lynx without a renderer.
 ## Before you start
 
 - Read **basics** (module layout, `view/frontend/lynx/<vue|react>/src`, aliases, build). The Lynx reference
-  implementation is `OOCS_LynxInStorePickup` (in
-  `vendor/oocscommerce/module-lynx-in-store-pickup`): `Model\PickupLocations` (config), `Plugin\SavePickupLocation` (beforeSave),
+  implementation is `OOCS_LynxMSI` (in
+  `vendor/oocscommerce/module-lynx-msi`): `Model\PickupLocations` (config), `Plugin\SavePickupLocation` (beforeSave),
   `Components/StorePickup.{vue,tsx}`.
 - Find the **carrier code** (the first segment of the rate code: rate `instore_pickup` = carrier `instore`, method
   `pickup`). The pool is keyed by carrier code, so one renderer serves every method of the carrier.

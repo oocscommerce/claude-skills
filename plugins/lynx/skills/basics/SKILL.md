@@ -40,7 +40,7 @@ keeps it apart in the FPC). There is no REST/GraphQL layer to write.
 | Design | A merchant-edited set of layouts + design settings, chosen per store view in **Stores › Configuration › Lynx › Design** | `OOCS_LynxPageBuilder` |
 | Layout | JSON tree of nodes stored per design under the full action name (`catalog_product_view_type_simple`, `contact_index_index`) | table `lynx_pagebuilder_layout` |
 | Zones | `header`, `content` (inside `<main id="page-content">`, per page), `footer`, `backstage` (hidden; trackers, scripts) | components declare allowed zones |
-| Component | A registered name in the `components` pool of `OOCS\LynxComponent\Model\Registry` (global `etc/di.xml`) → a `.vue`/`.tsx` file | skill component |
+| Component | A `type … @component(code, template, …)` in the module's `etc/components/<Template>.graphqls` → a `.vue`/`.tsx` file; settings, slots and provider data are its fields, typed for Vue/React as `Lynx.<TypeName>` | skill component |
 | Provider | PHP class turning a node's saved settings into props (`OOCS\LynxComponent\Api\ComponentProviderInterface::resolve()`, base `Model\AbstractComponentProvider`); can mark data `deferred()`/`optional()` | skill provider |
 | LayoutResolver | Walks every node, merges defaults, calls the provider | `OOCS\LynxComponent\Model\LayoutResolver` |
 | Rendering | `Pages/Default` + page shell `Layouts/Default`; `DynamicNode` loads each node's component chunk on demand | `OOCS_LynxTheme` |
@@ -57,7 +57,8 @@ Packages you depend on most: `OOCS_LynxComponent` (registry, provider interfaces
 ```
 app/code/Vendor/Module/                    (or a Composer package inside the project root)
 ├── etc/module.xml                         <sequence>: the OOCS_Lynx* modules you use
-├── etc/di.xml                             components/pages pools (global scope)
+├── etc/components/Highlight.graphqls           component declaration (settings, slots, props)
+├── etc/di.xml                             pages/pageComponents pools (global scope)
 ├── Provider/…                             component providers
 ├── view/frontend/layout/lynx_<handle>.xml only lynx_ files are read on Lynx store views
 ├── i18n/en_US.csv                         every string the shopper sees
@@ -155,7 +156,7 @@ Examples and the "does not work" table: [reference/layout-xml.md](reference/layo
 
 No `js-translation.json`, `$t()` or `mage/translate` on Lynx. Every string reaches the component already translated:
 
-- Component labels → provider `labels` prop (`__()` in PHP). Merchant-typed text → `_i18n` settings resolved with
+- Component labels → provider `labels` prop (`__()` in PHP). Merchant-typed text → `Localized*` settings resolved with
   `OOCS\LynxComponent\Helper\LocalizedText`. Controller pages → a `labels` prop. Global UI → `config('labels')`, added
   by an `afterBuild` plugin on `OOCS\LynxTheme\ViewModel\StoreConfig` (prefix keys with your module). Payment/shipping
   renderers → `labels` in the method's config. Server messages/errors → show Magento's `message` as is.
@@ -220,10 +221,11 @@ from. What to run after which change: [reference/cli-and-workflow.md](reference/
 
 ## Rules
 
-- Pool arrays are merged per area by argument name, so add to them in the scope Lynx reads them: `components`,
+- Pool arrays are merged per area by argument name, so add to them in the scope Lynx reads them:
   `pages` (`OOCS\LynxPageBuilder\Model\PreviewPagebuilder`), `pageComponents` in global `etc/di.xml`;
   `paymentMethodRenderers` and `shippingMethodRenderers` in `etc/frontend/di.xml`. A wrong scope silently replaces or
   drops entries.
+- Components are declared in `etc/components/*.graphqls`, not di.xml; the server sends only the props declared there.
 - Components never hardcode UI text; labels come translated from PHP.
 - Data a node needs for its first paint comes from its provider, not a fetch; shopper-specific data (cart, name,
   wishlist) comes from customer data in the browser, because page props are cached in the FPC.
@@ -242,8 +244,8 @@ from. What to run after which change: [reference/cli-and-workflow.md](reference/
    (React: `**/*.{ts,tsx}` with the React theme's config). It includes the SSR rule.
 3. PHP: `vendor/bin/phpcs --standard=Magento2 app/code/Vendor/Module`; `declare(strict_types=1)`, one-line
    docblocks with `@param`/`@return`.
-4. `bin/magento cache:clean config layout full_page` after `di.xml`/layout changes (`lynx_component` after writing
-   layout rows), then check the page on both a Vue and a React store view, and in the PageBuilder preview.
+4. `bin/magento cache:clean config layout full_page` after `di.xml`/layout changes (`lynx_component` after `.graphqls`
+   changes or writing layout rows; then `lynx:static:deploy` regenerates the `Lynx.*` types), then check the page on both a Vue and a React store view, and in the PageBuilder preview.
 5. Switch a design setting (button color, corners, border width) in the editor preview: everything you styled must
    follow.
 
@@ -251,8 +253,8 @@ from. What to run after which change: [reference/cli-and-workflow.md](reference/
 
 | Skill | Use for |
 |---|---|
-| component | A new PageBuilder component: `components` pool entry, `.vue` + `.tsx`, zones, slots |
-| component-settings | The settings panel of a component (setting types, `_i18n`, image, options) |
+| component | A new PageBuilder component: `.graphqls` declaration, `.vue` + `.tsx`, zones, slots, generated props types |
+| component-settings | The settings panel of a component (setting field types, localized text, image, options) |
 | provider | PHP provider: props, labels, deferred/optional data, cache tags, sample data |
 | page | A storefront route: layout-driven or controller-declared Inertia page, editable page entry |
 | forms-analytics | Forms (Inertia/fetch, form key, reCAPTCHA), customer data reload, analytics events |

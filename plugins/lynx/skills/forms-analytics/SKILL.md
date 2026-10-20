@@ -31,7 +31,8 @@ to an outside service.
 | `fetch` to a JSON/AJAX endpoint | stay on the page, partial UI update | read the JSON; call `messagesStore.sync()` or `addServerMessage()`; refresh sections |
 
 Magento controllers read `$_POST` and check `form_key`. Inertia sends JSON by default, so always pass
-`forceFormData: true` and include `form_key`:
+`forceFormData: true` and include `form_key`. The provider's `urls`, `sections` and `labels` are declared in the
+component's `.graphqls` (skill **component**; [reference/forms.md](reference/forms.md#sections)), which types the props:
 
 ```vue
 <script setup lang="ts">
@@ -39,7 +40,7 @@ import { ref } from 'vue'
 import { router } from '@inertiajs/vue3'
 import { useFormKeyStore } from 'OOCS_LynxTheme/stores/global/formKeyStore'
 
-const props = defineProps<{ urls: { post: string }; labels: Record<string, string> }>()
+const props = withDefaults(defineProps<Lynx.VendorFaqAskForm>(), { labels: () => ({}) })
 const formKey = useFormKeyStore()
 const question = ref('')
 const busy = ref(false)
@@ -155,11 +156,11 @@ analytics.track('add_to_wishlist', {
 
 ### 7. Add a tracker for an outside service
 
-A headless PageBuilder component placed in the **Backstage** zone (on every page, checkout included): registry entry
-with `zones` = `backstage`, group `utility`, `event_<name>` toggle settings and `consent_cookies`; a provider passing the
+A headless PageBuilder component placed in the **Backstage** zone (on every page, checkout included): `.graphqls`
+declaration with `zones: ["backstage"]`, group `utility`, `event_<name>` toggle settings and `consent_cookies`; a provider passing the
 account id (empty when disabled); a component that on mount calls `analytics.addTracker(send)` (the current page's
 events - its `page_view`, `view_item` - replay to it), maps Lynx events to the vendor's, loads the vendor script lazily
-after consent, and `removeTracker` on unmount. Full Vue + React + di.xml + CSP example:
+after consent, and `removeTracker` on unmount. Full `.graphqls` + Vue + React + CSP example:
 [reference/analytics.md](reference/analytics.md#tracker-component).
 
 ## Rules
@@ -179,8 +180,10 @@ after consent, and `removeTracker` on unmount. Full Vue + React + di.xml + CSP e
 
 ## Check
 
-1. `bin/magento setup:upgrade`, `bin/magento cache:clean config full_page`; new module:
-   `bin/magento lynx:workspace:setup <themes>`, then `bin/magento lynx:static:deploy` (or `npm run build`).
+1. `bin/magento setup:upgrade`, `bin/magento cache:clean config full_page lynx_component` (plus
+   `bin/magento lynx:compile components` when the site runs compiled); new module:
+   `bin/magento lynx:workspace:setup <themes>`, then `bin/magento lynx:static:deploy` (writes the `Lynx.*` types,
+   then builds).
 2. Submit the form: request is `multipart/form-data` with `form_key`; success/error message appears; with a
    reCAPTCHA type selected for the key in **Stores › Configuration › Security › Google reCAPTCHA Storefront** (then
    clean `config` cache), the widget appears on focus and the token is posted.
@@ -192,5 +195,5 @@ after consent, and `removeTracker` on unmount. Full Vue + React + di.xml + CSP e
 ## Reference
 
 - [reference/forms.md](reference/forms.md) - React form, POST controller, reCAPTCHA keys and store, sections end to end
-- [reference/analytics.md](reference/analytics.md) - store API, events Lynx tracks, tracker component (Vue, React, di.xml, CSP)
+- [reference/analytics.md](reference/analytics.md) - store API, events Lynx tracks, tracker component (`.graphqls`, Vue, React, CSP)
 - https://docs.oocscommerce.com/lynx/developer/forms, https://docs.oocscommerce.com/lynx/developer/inertia#forms

@@ -31,11 +31,19 @@ class BackToTop extends AbstractComponentProvider
 }
 ```
 
+Declared in the component's `.graphqls` (every key the provider returns must be):
+
+```graphql
+type VendorBackToTop @component(code: "vendor_back_to_top", template: "Vendor_Module::Components/BackToTop", provider: "Vendor\\Module\\Provider\\BackToTop", label: "Back To Top") {
+  labels: StringMap! @optional
+}
+```
+
 Component side:
 
 ```vue
 <script setup lang="ts">
-const props = withDefaults(defineProps<{ labels?: Record<string, string> }>(), { labels: () => ({}) })
+const props = withDefaults(defineProps<Lynx.VendorBackToTop>(), { labels: () => ({}) })
 </script>
 
 <template>
@@ -44,9 +52,7 @@ const props = withDefaults(defineProps<{ labels?: Record<string, string> }>(), {
 ```
 
 ```tsx
-type Props = { labels?: Record<string, string> }
-
-export default function BackToTop({ labels = {} }: Props) {
+export default function BackToTop({ labels = {} }: Lynx.VendorBackToTop) {
     return <button className="l-btn l-btn-primary" aria-label={labels.backToTop}>…</button>
 }
 ```
@@ -170,6 +176,25 @@ class FeaturedProducts extends AbstractComponentProvider
 
         return $props;
     }
+}
+```
+
+The `.graphqls` declares the settings it reads and every key it adds:
+
+```graphql
+type VendorFeaturedProducts @component(code: "vendor_featured_products", template: "Vendor_Module::Components/FeaturedProducts", provider: "Vendor\\Module\\Provider\\FeaturedProducts", label: "Featured Products") {
+  title: LocalizedText! @setting(label: "Title", default: "")
+  skus: Textarea! @setting(label: "SKUs", default: "")
+  limit: Int! @setting(label: "Products", default: 8, min: 1, max: 24)
+  deferred: Boolean! @setting(label: "Load after the page", default: true)
+  products: [VendorFeaturedProduct!]! @optional
+  labels: StringMap! @optional
+}
+
+type VendorFeaturedProduct {
+  id: Int!
+  name: String!
+  url: String!
 }
 ```
 

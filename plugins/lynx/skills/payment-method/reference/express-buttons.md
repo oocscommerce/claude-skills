@@ -9,7 +9,7 @@ component (see **component**, **provider**) the merchant drops into the **Expres
 | **Checkout** (`default_checkout`) | Above the steps, followed by "Or proceed with the standard checkout" |
 | **Checkout Cart** (`default_checkout_cart`) | Summary column, under **Proceed to Checkout** |
 
-The slot accepts only group `express_checkout`, each component once (`max_per_component` 1). Layout comes from the
+The slot accepts only group `express_checkout`, each component once (`max: 1`). Layout comes from the
 holder's **Express Buttons Per Row** / **Express Buttons Gap** settings (`express_columns`, `express_gap`); the button
 itself usually has no settings.
 
@@ -18,40 +18,30 @@ Lynx references: `OOCS_LynxPaymentBraintree::Components/Express/PayPal` (provide
 (`OOCS\LynxPaymentStripe\Provider\Express\Wallets`), `OOCS_LynxPaymentPayPal::Components/Express/Shortcut`
 (`OOCS\LynxPaymentPayPal\Provider\Express\Shortcut`, also on the cart).
 
-## 1. Registry entry - global `etc/di.xml`
+## 1. Declaration - `etc/components/Foo.graphqls`
 
-```xml
-<?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <type name="OOCS\LynxComponent\Model\Registry">
-        <arguments>
-            <argument name="components" xsi:type="array">
-                <item name="vendor_foo_express" xsi:type="array">
-                    <item name="component" xsi:type="string">Vendor_PaymentFoo::Components/Express/Foo</item>
-                    <item name="group" xsi:type="string">express_checkout</item>
-                    <item name="icon" xsi:type="string">ph-wallet</item>
-                    <item name="provider" xsi:type="object">Vendor\PaymentFoo\Provider\Express\Foo\Proxy</item>
-                    <item name="label" xsi:type="string">Foo Express</item>
-                    <item name="description" xsi:type="string">Foo wallet button: the shopper pays in Foo's sheet and the order is placed without the checkout steps.</item>
-                    <item name="zones" xsi:type="array">
-                        <item name="content" xsi:type="string">content</item>
-                    </item>
-                    <item name="available_on" xsi:type="array">
-                        <item name="checkout" xsi:type="string">checkout_index_index</item>
-                    </item>
-                    <item name="settings" xsi:type="array"/>
-                </item>
-            </argument>
-        </arguments>
-    </type>
-</config>
+```graphql
+"Foo wallet button: the shopper pays in Foo's sheet and the order is placed without the checkout steps."
+type VendorFooExpress @component(
+  code: "vendor_foo_express"
+  template: "Vendor_PaymentFoo::Components/Express/Foo"
+  provider: "Vendor\\PaymentFoo\\Provider\\Express\\Foo"
+  label: "Foo Express"
+  group: "express_checkout"
+  icon: "ph-wallet"
+  zones: ["content"]
+  availableOn: ["checkout_index_index"]
+) {
+  "False when the method is not available for this quote"
+  enabled: Boolean! @optional
+  "Every string the button shows, translated by the provider"
+  labels: StringMap! @optional
+}
 ```
 
-- Global scope, not `etc/frontend`: the registry is read in more than one area and an area list would replace it.
-- Note the `::` in `component` (registry syntax), unlike the renderer pool's `/`.
-- Add `<item name="cart" xsi:type="string">checkout_cart_index</item>` to `available_on` **only** if the button works on
-  the cart page (see section 5).
+- Note the `::` in `template` (registry syntax), unlike the renderer pool's `/`.
+- Add `"checkout_cart_index"` to `availableOn` **only** if the button works on the cart page (see section 5).
+- Declare every other key the provider returns (client ids, button style…): undeclared props are dropped.
 
 ## 2. Provider - decides whether the button shows
 
@@ -152,7 +142,7 @@ import { onMounted, ref } from 'vue'
 import { useCheckoutStore } from 'OOCS_LynxCheckout/stores/checkoutStore'
 import { useMessagesStore } from 'OOCS_LynxTheme/stores/global/messagesStore'
 
-const props = defineProps<{ enabled?: boolean; labels?: Record<string, string> }>()
+const props = defineProps<Lynx.VendorFooExpress>()
 
 const checkout = useCheckoutStore()
 const messages = useMessagesStore()

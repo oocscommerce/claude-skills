@@ -55,8 +55,8 @@ without a deployment. The steps:
 app/code/Vendor/FooPixel/
 ├── etc/
 │   ├── adminhtml/system.xml          ← "Foo Pixel ID" field (standard Magento, not shown)
+│   ├── components/FooPixel.graphqls
 │   ├── csp_whitelist.xml
-│   ├── di.xml
 │   └── module.xml
 ├── Provider/FooPixel.php
 └── view/frontend/lynx/
@@ -64,54 +64,30 @@ app/code/Vendor/FooPixel/
     └── react/src/Components/FooPixel.tsx
 ```
 
-#### Register the component
+#### Declare the component
 
-In the **global** `etc/di.xml`: the component registry is read in several areas, and an area-level list would replace every other module's components. Settings named `event_<name>` follow the GA4 component's convention. Setting types: skill **component-settings**.
+`etc/components/FooPixel.graphqls`. Settings named `event_<name>` follow the GA4 component's convention. Setting types:
+skill **component-settings**.
 
-```xml
-<?xml version="1.0"?>
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <type name="OOCS\LynxComponent\Model\Registry">
-        <arguments>
-            <argument name="components" xsi:type="array">
-                <item name="vendor_foo_pixel" xsi:type="array">
-                    <item name="component" xsi:type="string">Vendor_FooPixel::Components/FooPixel</item>
-                    <item name="group" xsi:type="string">utility</item>
-                    <item name="icon" xsi:type="string">ph-chart-bar</item>
-                    <item name="provider" xsi:type="object">Vendor\FooPixel\Provider\FooPixel\Proxy</item>
-                    <item name="label" xsi:type="string">Foo Pixel</item>
-                    <item name="description" xsi:type="string">Sends the events switched on below to Foo. Renders nothing; place it once in Backstage.</item>
-                    <item name="zones" xsi:type="array">
-                        <item name="backstage" xsi:type="string">backstage</item>
-                    </item>
-                    <item name="settings" xsi:type="array">
-                        <item name="consent_cookies" xsi:type="array">
-                            <item name="label" xsi:type="string">Require cookies</item>
-                            <item name="description" xsi:type="string">One cookie name per line. The Foo script loads only while every one of them exists with a value, e.g. cookie_consent from the Cookie Consent component. Empty: no condition.</item>
-                            <item name="type" xsi:type="string">textarea</item>
-                        </item>
-                        <item name="event_page_view" xsi:type="array">
-                            <item name="label" xsi:type="string">Send page views</item>
-                            <item name="type" xsi:type="string">toggle</item>
-                            <item name="default" xsi:type="boolean">true</item>
-                        </item>
-                        <item name="event_add_to_cart" xsi:type="array">
-                            <item name="label" xsi:type="string">Send add to cart</item>
-                            <item name="type" xsi:type="string">toggle</item>
-                            <item name="default" xsi:type="boolean">true</item>
-                        </item>
-                        <item name="event_purchase" xsi:type="array">
-                            <item name="label" xsi:type="string">Send purchases</item>
-                            <item name="type" xsi:type="string">toggle</item>
-                            <item name="default" xsi:type="boolean">true</item>
-                        </item>
-                    </item>
-                </item>
-            </argument>
-        </arguments>
-    </type>
-</config>
+```graphql
+"Sends the events switched on below to Foo. Renders nothing; place it once in Backstage."
+type VendorFooPixel @component(
+  code: "vendor_foo_pixel"
+  template: "Vendor_FooPixel::Components/FooPixel"
+  provider: "Vendor\\FooPixel\\Provider\\FooPixel"
+  label: "Foo Pixel"
+  group: "utility"
+  icon: "ph-chart-bar"
+  zones: ["backstage"]
+) {
+  "One cookie name per line. The Foo script loads only while every one of them exists with a value, e.g. cookie_consent from the Cookie Consent component. Empty: no condition."
+  consent_cookies: Textarea! @setting(label: "Require cookies") @optional
+  event_page_view: Boolean! @setting(label: "Send page views", default: true)
+  event_add_to_cart: Boolean! @setting(label: "Send add to cart", default: true)
+  event_purchase: Boolean! @setting(label: "Send purchases", default: true)
+  "From store configuration; empty when tracking is off"
+  pixel_id: String!
+}
 ```
 
 #### The provider
@@ -189,16 +165,7 @@ import { useAnalyticsStore } from 'OOCS_LynxTheme/stores/global/analyticsStore'
 defineOptions({ inheritAttrs: false })
 const attrs = useAttrs()
 
-const props = withDefaults(
-    defineProps<{
-        pixel_id?: string
-        consent_cookies?: string
-        event_page_view?: boolean
-        event_add_to_cart?: boolean
-        event_purchase?: boolean
-    }>(),
-    { pixel_id: '', consent_cookies: '', event_page_view: true, event_add_to_cart: true, event_purchase: true }
-)
+const props = withDefaults(defineProps<Lynx.VendorFooPixel>(), { consent_cookies: '' })
 
 declare global {
     interface Window {
@@ -289,14 +256,6 @@ onUnmounted(() => {
 import { useEffect } from 'react'
 import { useAnalyticsStore } from 'OOCS_LynxTheme/stores/global/analyticsStore'
 
-type Props = {
-    pixel_id?: string
-    consent_cookies?: string
-    event_page_view?: boolean
-    event_add_to_cart?: boolean
-    event_purchase?: boolean
-}
-
 declare global {
     interface Window {
         foo?: ((...args: unknown[]) => void) & { queue?: unknown[] }
@@ -319,7 +278,7 @@ let instances = 0
 let stop: (() => void) | null = null
 let requested = false
 
-export default function FooPixel({ pixel_id = '', consent_cookies = '', ...events }: Props) {
+export default function FooPixel({ pixel_id, consent_cookies = '', ...events }: Lynx.VendorFooPixel) {
     const analytics = useAnalyticsStore()
 
     useEffect(() => {

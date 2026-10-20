@@ -49,7 +49,8 @@ Vendor/ProductQuestionsLynx/
 ├── composer.json            requires the extension + oocscommerce/module-lynx-component (+ page-builder, customer if used)
 ├── registration.php
 ├── etc/module.xml           <sequence>: Vendor_ProductQuestions, OOCS_LynxComponent, OOCS_LynxPageBuilder, OOCS_LynxCustomer
-├── etc/di.xml               components, editor pages (GLOBAL scope)
+├── etc/components/Questions.graphqls   component declaration (settings, props)
+├── etc/di.xml               editor pages (GLOBAL scope)
 ├── Provider/Questions.php
 ├── i18n/en_US.csv           only phrases the extension does not have
 └── view/frontend/
@@ -64,12 +65,12 @@ the same (`OOCS_LynxPaymentStripe` only holds the Lynx front of the Stripe modul
 
 ### 2. Each block → component + provider
 
-Register in global `etc/di.xml` under `OOCS\LynxComponent\Model\Registry` → `components` (an area `di.xml` would
-replace every other module's components). Pick `group` by where merchants must drop it: Product Detail
+Declare it in `etc/components/<Template>.graphqls` (`type … @component(…)`), with a field for every key the provider
+returns: the server drops undeclared props. Pick `group` by where merchants must drop it: Product Detail
 slots and Product Media's Below Gallery accept `layout`, `text`, `media`, `form`, `product_list`, `product_attribute`,
 `general` but not `product_page`; Product's Images and Details slots accept those and `product_page` too; `general`
-lets it go into a Tab under the product. Use `available_on` `catalog_product_view*` for product-page blocks (every
-type has its own path). Full entry, provider, Vue and React: [reference/product-questions-example.md](reference/product-questions-example.md).
+lets it go into a Tab under the product. Use `availableOn: ["catalog_product_view*"]` for product-page blocks (every
+type has its own path). Full `.graphqls`, provider, Vue and React: [reference/product-questions-example.md](reference/product-questions-example.md).
 
 The provider plays the block's role:
 
@@ -97,7 +98,7 @@ public function resolve(array $props): array
 | Current product / category | `current_product` / `current_category` from `Magento\Framework\Registry` |
 | FPC tags (replaces block `getIdentities()`) | `OOCS\LynxComponent\Model\PageCacheIdentities::add(array)` |
 | Sections an action invalidates | `OOCS\LynxComponent\Helper\SectionInvalidation::getForPath('<route>')` (exact keys + `*`, no wildcards) |
-| Merchant text settings (`_i18n`) | `OOCS\LynxComponent\Helper\LocalizedText::get()` |
+| Merchant text settings (`LocalizedText`…) | `OOCS\LynxComponent\Helper\LocalizedText::get()` |
 | Lazy block (fetched when its tab opens) | override `optional(array $props)`; see `provider` |
 
 ### 3. Widget JS → component
@@ -166,7 +167,7 @@ bin/magento module:enable Vendor_ProductQuestionsLynx
 bin/magento setup:upgrade
 bin/magento lynx:workspace:setup OOCS_LynxVue OOCS_LynxReact   # the themes the store builds
 bin/magento lynx:static:deploy
-bin/magento lynx:compile        # when the store uses compiled configuration (new sections/routes/events)
+bin/magento lynx:compile        # when the store uses compiled configuration (components, sections/routes/events)
 bin/magento cache:clean
 ```
 
@@ -178,7 +179,8 @@ module declares**, into the default design.
 
 - **Do not write merchants' layouts from a data patch** (e.g. injecting your node into their product page): those
   layouts belong to their designs.
-- Pools in global `etc/di.xml` (`components`, `pages`); `paymentMethodRenderers` in `etc/frontend/di.xml`.
+- Components in `etc/components/*.graphqls`; the `pages` pool in global `etc/di.xml`; `paymentMethodRenderers` in
+  `etc/frontend/di.xml`. Components use the generated `Lynx.<TypeName>`, not hand-written props types.
 - Labels translated in PHP with `__()` and sent as `labels`; reuse Magento phrases ("Sign In", "This is a required
   field."). Extension CSVs keep working; DB / Inline translations do not apply on Lynx (CSV or language pack;
   `bin/magento lynx:compile translate` with compiled config).
@@ -197,7 +199,7 @@ module declares**, into the default design.
 - [ ] Lazy option inside a Tab; feature disabled in config hides the tab.
 - [ ] Component offered on the right pages and slots, with sample product / `sample_data`.
 - [ ] reCAPTCHA with each type and with none; other locale has no English left.
-- [ ] After `lynx:compile`, new `sections.xml` / `routes.xml` / `events.xml` entries are picked up.
+- [ ] After `lynx:compile`, new `.graphqls` / `sections.xml` / `routes.xml` / `events.xml` entries are picked up.
 
 ## Rebuilding a store design with an AI assistant (MCP)
 

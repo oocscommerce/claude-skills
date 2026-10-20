@@ -104,7 +104,7 @@ class InstallFaqLayout implements DataPatchInterface
 }
 ```
 
-The same check-then-insert is what `OOCS\LynxCatalog\Setup\Patch\Data\AddProductAlertLayouts` does for a page it adds.
+The same check-then-insert is what `OOCS\LynxProductAlert\Setup\Patch\Data\AddProductAlertLayouts` does for a page it adds.
 Lynx's own install patches use `insertOnDuplicate(..., ['value'])` because they own those paths; a third-party module
 should not overwrite a row someone else may have written.
 
@@ -112,16 +112,16 @@ should not overwrite a row someone else may have written.
 
 | Key | Meaning |
 |---|---|
-| `name` | The component's key in the `components` registry (`default_group`, `vendor_faq_list`) |
-| `component` | `Module_Name/Path` with a slash, e.g. `OOCS_LynxThemeComponent/Components/Group` (the registry entry writes `::`, the node writes `/`) |
+| `name` | The component's `code` from its `@component` in `etc/components/*.graphqls` (`default_group`, `vendor_faq_list`) |
+| `component` | `Module_Name/Path` with a slash, e.g. `OOCS_LynxThemeComponent/Components/Group` (`template` in the `.graphqls` writes `::`, the node writes `/`) |
 | `label` | Shown in the editor's tree |
 | `visible` | `true` |
-| `props` | Saved settings; leave a setting out to get its default. `*_i18n` settings are objects keyed by locale with a `default` key |
+| `props` | Saved settings; leave a setting out to get its default. localized settings (`LocalizedText`…) are objects keyed by locale with a `default` key |
 | `slots` | For components with slots: slot name → list of nodes |
 
 No `id` on stored nodes; ids are assigned at render. Useful built-ins: `default_group` (`OOCS_LynxThemeComponent/Components/Group`;
 `layout` constrained/full, `width` narrow/default/site, `padding_y` none/sm/md/lg, `padding_x` default/none, `gap`
-none/sm/md/lg), `default_heading` (`text` text_i18n, `level` h1–h6). To see what a built-in page stores, read the
+none/sm/md/lg), `default_heading` (`text` LocalizedText, `level` h1–h6). To see what a built-in page stores, read the
 layout patches under `vendor/oocscommerce/module-lynx-*/Setup/Patch/Data/`.
 
 ## After the fact

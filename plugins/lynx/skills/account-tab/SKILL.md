@@ -16,7 +16,8 @@ sample rows instead of a signed-in customer.
   porting an existing extension, put the Lynx side in a compatibility module (`Vendor_ProductQuestionsLynx`) that
   sequences the original module and `OOCS_LynxCustomer`.
 - Imitate a built-in tab: `vendor/oocscommerce/module-lynx-customer/` - `etc/frontend/di.xml` (tabs),
-  `etc/di.xml` (`default_account` and `default_account_*` sections, `pages`), `Provider/Customer/Wishlist.php`,
+  `etc/components/MyAccount.graphqls` (`default_account`) and `etc/components/Wishlist.graphqls` (a section), `etc/di.xml`
+  (`pages`), `Provider/Customer/Wishlist.php`,
   `view/frontend/lynx/vue/src/Components/Account/*.vue`, `Setup/Patch/Data/InstallCustomerLayouts.php`,
   `view/frontend/layout/lynx_wishlist_index_index.xml`.
 
@@ -119,37 +120,47 @@ The `tabs` pool is declared by Lynx in the **frontend** area, so contribute in t
 - The label is an English phrase that Lynx translates with `__()` when it builds the sidebar. Use the same wording
   as the extension's Luma link and keep the phrase in the module's `i18n/*.csv`.
 
-### 5. Section component, frame availability, editor page - global `etc/di.xml`
+### 5. Section component and frame availability - `etc/components/AccountQuestions.graphqls`
+
+```graphql
+"The questions the signed-in customer asked, with their answers"
+type VendorAccountProductQuestions @component(
+  code: "vendor_account_product_questions"
+  template: "Vendor_ProductQuestionsLynx::Components/AccountQuestions"
+  provider: "Vendor\\ProductQuestionsLynx\\Provider\\AccountQuestions"
+  label: "My Product Questions"
+  group: "account_section"
+  icon: "ph-question"
+  zones: ["content"]
+  availableOn: ["productquestions_my_index"]
+) {
+  items: [VendorAccountQuestion!]! @optional
+  "Every string the section shows, translated by the provider"
+  labels: StringMap! @optional
+}
+
+type VendorAccountQuestion {
+  id: Int!
+  product: String!
+  url: String!
+  question: String!
+  answer: String!
+  date: String!
+}
+
+# The frame may be placed on the new page. @component args replace the old ones: keep Lynx's list and add yours
+extend type Account @component(
+  availableOn: ["customer_account_index", "customer_account_edit", "customer_address_index", "customer_address_form", "sales_order_history", "sales_order_view", "sales_order_invoice", "sales_order_shipment", "sales_order_creditmemo", "downloadable_customer_products", "newsletter_manage_index", "wishlist_index_index", "vault_cards_listaction", "review_customer_index", "review_customer_view", "productquestions_my_index"]
+)
+```
+
+`group` `account_section` is the only group the My Account slot accepts. Copy the current `availableOn` from
+`OOCS_LynxCustomer` `etc/components/MyAccount.graphqls` (type `Account`) when you write the `extend`. Every key the
+provider returns must be declared here; the server drops the rest.
+
+### 6. Editor page - global `etc/di.xml`
 
 ```xml
-<type name="OOCS\LynxComponent\Model\Registry">
-    <arguments>
-        <argument name="components" xsi:type="array">
-            <item name="vendor_account_product_questions" xsi:type="array">
-                <item name="component" xsi:type="string">Vendor_ProductQuestionsLynx::Components/AccountQuestions</item>
-                <item name="provider" xsi:type="object">Vendor\ProductQuestionsLynx\Provider\AccountQuestions\Proxy</item>
-                <item name="label" xsi:type="string">My Product Questions</item>
-                <item name="description" xsi:type="string">The questions the signed-in customer asked, with their answers</item>
-                <item name="icon" xsi:type="string">ph-question</item>
-                <!-- The only group the My Account slot accepts -->
-                <item name="group" xsi:type="string">account_section</item>
-                <item name="zones" xsi:type="array">
-                    <item name="content" xsi:type="string">content</item>
-                </item>
-                <item name="available_on" xsi:type="array">
-                    <item name="product_questions" xsi:type="string">productquestions_my_index</item>
-                </item>
-                <item name="settings" xsi:type="array"/>
-            </item>
-            <!-- Merges into Lynx's entry: the frame may be placed on the new page -->
-            <item name="default_account" xsi:type="array">
-                <item name="available_on" xsi:type="array">
-                    <item name="product_questions" xsi:type="string">productquestions_my_index</item>
-                </item>
-            </item>
-        </argument>
-    </arguments>
-</type>
 <type name="OOCS\LynxPageBuilder\Model\PreviewPagebuilder">
     <arguments>
         <argument name="pages" xsi:type="array">
@@ -169,7 +180,7 @@ The `tabs` pool is declared by Lynx in the **frontend** area, so contribute in t
 
 `route` must be the full three-part `front/controller/action`: the preview router matches `sample_data` pages on it.
 
-### 6. Provider with sample data
+### 7. Provider with sample data
 
 `Provider/AccountQuestions.php` extends `OOCS\LynxComponent\Model\AbstractComponentProvider` and implements
 `OOCS\LynxComponent\Api\SampleProviderInterface`:
@@ -182,14 +193,15 @@ The `tabs` pool is declared by Lynx in the **frontend** area, so contribute in t
 The page is not cached (`lynx_no_cacheable`), so reading the session in the provider is safe. Full class:
 [reference/example.md](reference/example.md#provider).
 
-### 7. Section component (Vue + React)
+### 8. Section component (Vue + React)
 
 `view/frontend/lynx/vue/src/Components/AccountQuestions.vue` and `.../react/src/Components/AccountQuestions.tsx`.
-It renders inside the frame: root `w-full`, no outer padding/margin, page heading `h1` from `labels.title`, empty
+Props come typed as `Lynx.VendorAccountProductQuestions` (generated from the `.graphqls`) and items as
+`Lynx.VendorAccountQuestion`. It renders inside the frame: root `w-full`, no outer padding/margin, page heading `h1` from `labels.title`, empty
 state from `labels.empty`, links with Inertia `Link`. Any action must return early when its URL is `'#'` (sample
 preview). Full files: [reference/example.md](reference/example.md#component).
 
-### 8. Starting layout - data patch
+### 9. Starting layout - data patch
 
 Default design (`Design::DEFAULT_ID`), insert only: a Group holding the My Account frame
 (`OOCS_LynxCustomer/Components/MyAccount`, node name `default_account`) with `props.active_tab` =
@@ -199,10 +211,11 @@ Default design (`Design::DEFAULT_ID`), insert only: a Group holding the My Accou
 
 ## Rules
 
-- `tabs` in `etc/frontend/di.xml` (Lynx declares the pool there); `components` and `pages` in global `etc/di.xml`.
-  Declaring a pool in another scope than its other contributors replaces their items in that area.
+- `tabs` in `etc/frontend/di.xml` (Lynx declares the pool there); `pages` in global `etc/di.xml`. Declaring a pool in
+  another scope than its other contributors replaces their items in that area. Components in `etc/components/*.graphqls`.
 - The section's `group` must be `account_section`; the frame's slot accepts only that group, one section per frame.
-- Add the page path to `default_account`'s `available_on`, or merchants cannot place the frame on your page.
+- Add the page path to `default_account`'s `availableOn` (`extend type Account`, full list), or merchants cannot place
+  the frame on your page.
 - `active_tab` is a node prop in the layout, not a setting; pages without their own tab (a detail page under a tab) set
   the parent tab's key.
 - Personal data page: `lynx_no_cacheable`, `ssr=false`, `encrypt_history=true`, NOINDEX. Never put customer data in
@@ -214,8 +227,10 @@ Default design (`Design::DEFAULT_ID`), insert only: a Group holding the My Accou
 
 ## Check
 
-1. `bin/magento setup:upgrade`; `bin/magento cache:clean config layout full_page lynx_component`.
-2. `bin/magento lynx:workspace:setup <themes>` (new module), then `bin/magento lynx:static:deploy` (or `npm run build`).
+1. `bin/magento setup:upgrade`; `bin/magento cache:clean config layout full_page lynx_component` (plus
+   `bin/magento lynx:compile components` when the site runs compiled).
+2. `bin/magento lynx:workspace:setup <themes>` (new module), then `bin/magento lynx:static:deploy` (writes the
+   `Lynx.*` types, then builds).
 3. Signed out, open `/productquestions/my/index`: redirected to sign in.
 4. Signed in: sidebar shows **My Product Questions** in position, highlighted on the page; list or empty state shows;
    other tabs still work; mobile sidebar shows it too.

@@ -67,7 +67,7 @@ area).
 ## Compiled configuration (`OOCS_LynxCompiler`)
 
 `bin/magento lynx:compile` snapshots merged XML (events, routes, config, view, sections, webapi, extension
-attributes, CSP whitelist, ACL, menu, indexer, queue, translations) into `generated/lynx_compile`, read in every area.
+attributes, CSP whitelist, ACL, menu, indexer, queue, translations, component `.graphqls`) into `generated/lynx_compile`, read in every area.
 `setup:upgrade`, `module:enable/disable` delete it; any covered XML change needs a new run; `cache:flush` does not
 clear it. Order: `setup:upgrade` → `setup:di:compile` → `lynx:compile` → static deploy.
 

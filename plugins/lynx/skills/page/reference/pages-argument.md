@@ -6,7 +6,7 @@ URL uses (`?page=<code>`); keep it vendor-prefixed (`vendor_faq`).
 | Key | Type | Meaning |
 |---|---|---|
 | `label` | string | Name in the editor page switcher (translated with `__()` when shown; sample-data pages get the suffix `(Sample)`) |
-| `path` | string | Where the layout is stored: the page's full action name (`faq_index_index`). Also the value used in components' `available_on` |
+| `path` | string | Where the layout is stored: the page's full action name (`faq_index_index`). Also the value used in components' `availableOn` |
 | `route` | string | Storefront route the preview opens, e.g. `faq/index/index`; `''` for the home page. Must be the full `front/controller/action` when `sample_data` is true |
 | `sample` | string | Appends a sample entity of the previewed store view to `route`: `product` (adds `/id/<id>`, optionally filtered by `type`), `category` (a category that lists products), `search_term` (adds `/q/<popular term>`) |
 | `type` | string | Product type for `sample` = `product` (`simple`, `configurable`, …) |

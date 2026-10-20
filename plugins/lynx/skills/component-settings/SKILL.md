@@ -1,86 +1,80 @@
 ---
 name: component-settings
-description: Declares the settings panel of a Lynx PageBuilder component - the `settings` array of a `components` pool entry in global etc/di.xml - with the right type (text, textarea, richtext, text_i18n, textarea_i18n, richtext_i18n, number, toggle, select, color, image, url, array), `default`, `description`, `depends`, static `options` or an `OptionSourceInterface` `source`, array `fields`, and the provider/component code each type needs. Use when a developer says "add a setting to my Lynx component", "translatable text field in PageBuilder", "image picker setting", "dropdown with attribute options", "repeater / list of links setting", "show this setting only when…", or "setting value is empty / not translated / image URL wrong". Use with the basics, component and provider skills.
+description: Declares the settings panel of a Lynx PageBuilder component - `@setting` fields in its etc/components/<Template>.graphqls - with the field type that picks the control (String/Text, Textarea, RichText, LocalizedText/Textarea/RichText, Int/Float, Boolean, enum select, `source` select, Color, Image, Url, list of `input` for arrays), `default`, description, `dependsOn`, `tab`, an `OptionSourceInterface` `source`, and the provider/component code each type needs. Use when a developer says "add a setting to my Lynx component", "translatable text field in PageBuilder", "image picker setting", "dropdown with attribute options", "repeater / list of links setting", "show this setting only when…", or "setting value is empty / not translated / image URL wrong". Use with the basics, component and provider skills.
 ---
 # Lynx component settings
 
-Produces the `settings` part of a component entry: the fields the merchant fills in the editor's settings panel.
-Each setting key becomes a prop of the same name, with its `default` filled in by the server. Some types are stored
-in a portable form and must be resolved by the component's provider.
+Produces the `@setting` fields of a component's `.graphqls` type: the fields the merchant fills in the editor's settings
+panel. Each setting becomes a prop of the same name, with its `default` filled in by the server. Some types are
+stored in a portable form and must be resolved by the component's provider.
 
 ## Before you start
 
-- The component entry exists (skill **component**) in the module's **global** `etc/di.xml`, under
-  `OOCS\LynxComponent\Model\Registry` -> `components` -> `<name>` -> `settings`.
-- Look at a built-in entry with similar fields (`OOCS_LynxThemeComponent` `etc/di.xml`: Banner, Image, LinkList,
-  Group; `OOCS_LynxCatalog`: Product Attribute with a `source`).
-- Pick types with the table below; the full per-type reference with XML is `reference/setting-types.md`.
+- The component is declared (skill **component**) in `etc/components/<Template>.graphqls` of the module.
+- Look at a built-in declaration with similar fields (`OOCS_LynxThemeComponent` `etc/components/`: `Banner.graphqls`,
+  `Image.graphqls`, `LinkList.graphqls`, `Group.graphqls`; `OOCS_LynxCatalog`: `Attribute.graphqls` with a `source`).
+- Pick field types with the table below; the full per-type reference is `reference/setting-types.md`.
 
-| Type | Editor field | `default` XML type | Value in props | Provider needed |
+| Field type | Editor control | `default` | Value in props | Provider needed |
 |---|---|---|---|---|
-| `text` | One-line input | `string` | string | no |
-| `textarea` | Multi-line input | `string` | string | no |
-| `richtext` | Rich text editor | `string` | HTML string | no |
-| `text_i18n` / `textarea_i18n` / `richtext_i18n` | Base field + **Translations** dialog | `string` | `{default, <locale>…}` object | **yes**, `LocalizedText::get()` |
-| `number` | Slider + number box | `number` | number | no |
-| `toggle` | Switch | `boolean` | boolean | no |
-| `select` | Dropdown | `string` | chosen option `value` | no |
-| `color` | Picker with the design palette | `string` | `#rrggbb` / `rgba(…)` / empty | no |
-| `image` | Media gallery picker (upload, crop) | `string` | path under `pub/media` | **yes**, `MediaUrl::url()` |
-| `url` | Link input | `string` | store path or absolute URL | **yes**, `StoreLink::path()` |
-| `array` | Sortable list with sub-fields | `array` | array of objects | when sub-fields need it |
+| `String`, `Text` | One-line input | `""` | string | no |
+| `Textarea` | Multi-line input | `""` | string | no |
+| `RichText` | Rich text editor | `""` | HTML string | no |
+| `LocalizedText` / `LocalizedTextarea` / `LocalizedRichText` | Base control + **Translations** dialog | `""` | `{default, <locale>…}` object | **yes**, `LocalizedText::get()` |
+| `Int`, `Float` | Slider + number box | number | number | no |
+| `Boolean` | Switch | `true` / `false` | boolean | no |
+| enum | Dropdown, options in enum order | `"value"` | chosen option value | no |
+| `String` + `source:` | Dropdown with options from code | `"value"` | chosen option value | no |
+| `Color` | Picker with the design palette | `""` | `#rrggbb` / `rgba(…)` / empty | no |
+| `Image` | Media gallery picker (upload, crop) | `""` | path under `pub/media` | **yes**, `MediaUrl::url()` |
+| `Url` | Link input | `""` | store path or absolute URL | **yes**, `StoreLink::path()` |
+| `[Input!]!` (list of an `input`) | Sortable list with sub-fields | `[]` | array of objects | when sub-fields need it |
 
-An unknown `type` falls back to a plain text input.
+A type no control shows (a data type, `StringMap`…) is an error when the definitions load.
 
 ## Steps
 
 ### 1. Declare each setting
 
-Keys every setting takes: `label`, `type`, `default`, optional `description` (the **?** tooltip), `depends` and
-`tab`. With many settings, `tab` groups them into collapsible rows, as the Theme tab does: a setting without one goes to
-**General**, first; the other groups follow in order of first use. No setting with `tab` = one list, as before.
+A field with `@setting(label, default, min, max, step, tab, source, labelField, dependsOn, control)`; the string
+above the field is the description (the **?** tooltip). Declare settings with `!` (a stored value is never null).
+With many settings, `tab` groups them into collapsible rows, as the Theme tab does: a setting without one goes to
+**General**, first; the other groups follow in order of first use. No setting with `tab` = one list.
 
-```xml
-<item name="settings" xsi:type="array">
-    <item name="title" xsi:type="array">
-        <item name="label" xsi:type="string">Title</item>
-        <item name="description" xsi:type="string">Shown above the list</item>
-        <item name="type" xsi:type="string">text_i18n</item>
-        <item name="default" xsi:type="string">Our picks</item>
-    </item>
-    <item name="limit" xsi:type="array">
-        <item name="label" xsi:type="string">Products</item>
-        <item name="type" xsi:type="string">number</item>
-        <item name="default" xsi:type="number">8</item>
-        <item name="min" xsi:type="number">1</item>
-        <item name="max" xsi:type="number">24</item>
-    </item>
-    <item name="show_title" xsi:type="array">
-        <item name="label" xsi:type="string">Show Title</item>
-        <item name="type" xsi:type="string">toggle</item>
-        <item name="default" xsi:type="boolean">true</item>
-    </item>
-</item>
+```graphql
+type VendorPicks @component(code: "vendor_picks", template: "Vendor_Module::Components/Picks", label: "Our Picks") {
+  "Shown above the list"
+  title: LocalizedText! @setting(label: "Title", default: "Our picks")
+  limit: Int! @setting(label: "Products", default: 8, min: 1, max: 24)
+  show_title: Boolean! @setting(label: "Show Title", default: true)
+}
 ```
 
-Give **every** setting a `default`, with the XML type that matches: `number` for number, `boolean` for toggle,
-`array` for array (`<item name="default" xsi:type="array"/>` for an empty list), `string` for everything else,
-`_i18n` included (declare a plain string; the editor wraps it as `{default: …}`). An empty string default is fine
-where empty means something ("no image", "theme color").
+Give **every** setting a `default` of the field's kind: a number, `true`/`false`, `[]` for a list, a string for the
+rest, localized types included (declare a plain string; the editor wraps it as `{default: …}`). An empty string
+default is fine where empty means something ("no image", "theme color").
 
-### 2. Select options: static or from code
+### 2. Select options: an enum or from code
 
-Static: `options` -> one item per option with `value` and `label`. From code: replace `options` with `source`, an
-object implementing **`OOCS\LynxComponent\Api\OptionSourceInterface`** (`toOptionArray(): array` of
-`['value' => …, 'label' => …]`), referenced as its `\Proxy`:
+Static: an `enum`, options in declaration order, label from `@label`. Value names are `SCREAMING_SNAKE_CASE` and store
+lowercased (`MD` stores `"md"`); `@value` when the stored value differs (`16_9`). On/off is a `Boolean`, not a Yes/No
+select. Prefix enum names with your vendor (names are global), or reuse a shared one from
+`OOCS_LynxComponent/etc/components/enums.graphqls` (`Align`, `Justify`, `TextAlign`, `Rounded`…).
 
-```xml
-<item name="attribute" xsi:type="array">
-    <item name="label" xsi:type="string">Attribute</item>
-    <item name="type" xsi:type="string">select</item>
-    <item name="default" xsi:type="string">sku</item>
-    <item name="source" xsi:type="object">Vendor\Module\Model\Config\Source\ProductAttribute\Proxy</item>
-</item>
+```graphql
+enum VendorPicksDisplay {
+  CARD @label(text: "Card")
+  LIST @label(text: "List")
+}
+display: VendorPicksDisplay! @setting(label: "Display", default: "card")
+```
+
+From code: a `String` field with `source`, a class (or virtual type) implementing
+**`OOCS\LynxComponent\Api\OptionSourceInterface`** (`toOptionArray(): array` of `['value' => …, 'label' => …]`),
+no `\Proxy`:
+
+```graphql
+attribute: String! @setting(label: "Attribute", default: "sku", source: "Vendor\\Module\\Model\\Config\\Source\\ProductAttribute")
 ```
 
 ```php
@@ -123,26 +117,20 @@ class ProductAttribute implements OptionSourceInterface
 }
 ```
 
-`Registry` calls `toOptionArray()` only when it builds the editor's component list (`getComponents()`), also for
-`source` on sub-fields of an `array` setting. To reuse one source class with different constructor arguments, declare
-a `virtualType` plus a proxy `virtualType` pointing at it, as `OOCS_LynxCatalog` does
-(`OOCSLynxCatalogProductImageAttributeSourceProxy`, see `reference/setting-types.md#select`).
+`Registry` creates the source and calls `toOptionArray()` only when it builds the editor's component list
+(`getComponents()`), also for `source` on sub-fields of an array setting. To reuse one source class with different
+constructor arguments, declare a `virtualType` in `etc/di.xml` and name it in `source`, as `OOCS_LynxCatalog` does
+(`reference/setting-types.md#select`).
 
-### 3. Show a setting only when others match: `depends`
+### 3. Show a setting only when others match: `dependsOn`
 
-```xml
-<item name="depends" xsi:type="array">
-    <item name="show_label" xsi:type="string">true</item>
-    <item name="display" xsi:type="array">
-        <item name="card" xsi:type="string">card</item>
-        <item name="list" xsi:type="string">list</item>
-    </item>
-</item>
+```graphql
+label: LocalizedText! @setting(label: "Label", default: "", dependsOn: {show_label: "true", display: ["card", "list"]})
 ```
 
-Several keys = AND; an array of values = any of them; values compare as strings (toggle -> `true`/`false`). The
+Several keys = AND; a list of values = any of them; values compare as strings (`Boolean` -> `"true"`/`"false"`). The
 panel updates while editing. Saving **removes** a hidden setting from the node, so the server renders it with its
-`default`. Not applied to `array` sub-fields.
+`default`. Not applied to array sub-fields.
 
 ### 4. Resolve portable types in the provider
 
@@ -162,26 +150,20 @@ foreach ($props['links'] as $i => $link) {
 - `StoreLink::path()` returns a root-relative store path (with the store code when **Add Store Code to URLs** is on);
   empty, `#anchor`, and anything with a scheme (`mailto:`, `tel:`, `https:`) stay unchanged.
 - `MediaUrl` / `StoreLink` live in `OOCS_LynxThemeComponent`: add it to `<sequence>` and `composer.json`.
-- Provider details (class, `\Proxy`, labels, caching): skill **provider**.
+- Provider details (class, labels, caching): skill **provider**.
 
-### 5. Type the props in the component
+### 5. Use the generated props in the component
+
+Settings arrive in `Lynx.<TypeName>` (generated by `bin/magento lynx:static:deploy`), already resolved by the
+provider; no default in the component:
 
 ```ts
-// Vue
-defineProps<{
-    title: string            // after LocalizedText
-    limit: number
-    show_title: boolean
-    tone: string             // select: string, not a literal union
-    color: string
-    image: string            // absolute URL after MediaUrl
-    links: Array<{ label: string; url: string; new_tab: boolean }>
-}>()
-// React: the same shape as `type Props = { … }`
+const props = defineProps<Lynx.VendorPicks>()                      // Vue
+export default function Picks({ title, limit }: Lynx.VendorPicks) // React
 ```
 
-Render `richtext` with `v-html` / `dangerouslySetInnerHTML`; links with Inertia's `Link` (Lynx sends off-origin links
-to the browser itself). Keep a `color` setting optional at the class level so the design applies until the merchant
+Render `RichText` with `v-html` / `dangerouslySetInnerHTML`; links with Inertia's `Link` (Lynx sends off-origin links
+to the browser itself). Keep a `Color` setting optional at the class level so the design applies until the merchant
 picks one:
 
 ```vue
@@ -190,38 +172,39 @@ picks one:
 
 ## Rules
 
-- **`default` in di.xml is the only default.** The editor saves every default on a new node and fills missing ones
+- **`default` in the `.graphqls` is the only default.** The editor saves every default on a new node and fills missing ones
   when a node is opened; `LayoutResolver` fills them on the server (`Registry::getDefaults()`) before the provider and
-  component run, including nodes code inserts. So providers read `$props['limit']` directly and components declare
-  settings as required props without defaults.
-- **Server-side defaults are top-level only.** Sub-fields of `array` items are not filled by the server: read them
-  with `?? ''` / `?? false` in the provider and type them defensively.
-- **`_i18n` settings require a provider.** Without one the component receives the raw object.
-- **Use plain `text` / `textarea` for codes** (SKUs, anchors, cookie names, CSS); `_i18n` for shopper-facing text;
-  `url` for links.
-- **`image` stores a path relative to `pub/media`** (`wysiwyg/sale/hero.jpg`) so layouts move between environments
+  component run, including nodes code inserts. So providers read `$props['limit']` directly and components give
+  settings no default.
+- **Server-side defaults are top-level only.** Sub-fields of array items are not filled by the server: read them
+  with `?? ''` / `?? false` in the provider.
+- **Localized settings require a provider.** Without one the component receives the raw object.
+- **Use plain `String` / `Textarea` for codes** (SKUs, anchors, cookie names, CSS); `Localized*` for shopper-facing
+  text; `Url` for links.
+- **`Image` stores a path relative to `pub/media`** (`wysiwyg/sale/hero.jpg`) so layouts move between environments
   and stores; only the provider turns it into a URL. Never build media URLs in the component.
-- **`url` stores a store path or absolute URL**; the editor reports an error only for a value with a scheme that does
+- **`Url` stores a store path or absolute URL**; the editor reports an error only for a value with a scheme that does
   not parse.
 - **Implement Lynx's `OptionSourceInterface`**, not `Magento\Framework\Data\OptionSourceInterface`: the registry
-  ignores the Magento one (the select shows no options). Always reference it as `\Proxy`.
-- **Select values can grow** (another module can add options by merging di.xml): type them `string` and map with a
+  ignores the Magento one (the select shows no options).
+- **Select values can grow** (another module can `extend enum`): map them with `Record<string, string>` and a
   fallback.
 - **Do not name a setting `align`** unless you mean the Group alignment (None/Wide/Full) that DynamicNode consumes;
   use `text_align`, `justify`, `vertical_align`.
 - **Setting keys are stored in layouts.** Renaming a key loses the saved value (the node falls back to the default).
 - **Settings are what the MCP save tool accepts as props**: a node sent through `pagebuilder_save_layout` with a prop
   that is not a declared setting is refused. Provider-added props (`labels`, lists) are never settings.
-- **Settings are merchant content**, not UI labels: their default text is fine in English in di.xml; UI strings the
+- **Settings are merchant content**, not UI labels: their default text is fine in English in the `.graphqls`; UI strings the
   component itself shows still come from the provider's `labels`.
 
 ## Check
 
-1. `bin/magento cache:clean` (di.xml-only changes need no frontend build).
+1. `bin/magento cache:clean lynx_component` (plus `bin/magento lynx:compile components` when the site runs compiled),
+   then `bin/magento lynx:static:deploy` so `props.d.ts` has the new settings.
 2. Editor: open the component's settings panel - every field shows the right control, defaults are filled, `?`
-   tooltips show, `depends` hides/shows live, a `source` select lists its options.
+   tooltips show, `dependsOn` hides/shows live, a `source` select lists its options.
 3. Save, reload the editor: values persist; a hidden dependent setting is gone from the node and the default renders.
-4. Translations: add a locale entry (e.g. `de_DE`) to an `_i18n` field; the store view with that locale shows it,
+4. Translations: add a locale entry (e.g. `de_DE`) to a localized field; the store view with that locale shows it,
    others show `default`.
 5. Image and URL: storefront HTML has the full media URL and a store-relative link (with store code if enabled).
 6. Array: add, reorder, delete items; new items start with sub-field defaults; `labelField` titles each item.
@@ -229,7 +212,7 @@ picks one:
 
 ## Reference
 
-- `reference/setting-types.md` - every type with XML, extra keys (`placeholder`, `rows`, `mono`, `min`/`max`/`step`,
-  `options`/`source`, `labelField`/`fields`), array item defaults and value shapes.
+- `reference/setting-types.md` - every field type with SDL, `@setting` arguments (`min`/`max`/`step`, `source`,
+  `labelField`, `control`), enums, array `input` types, item defaults and value shapes.
 - Skills: **basics**, **component**, **provider**.
 - https://docs.oocscommerce.com/lynx/developer/component-settings

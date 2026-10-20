@@ -1,27 +1,75 @@
-# Component entry reference
+# Component declaration reference
 
-The `components` argument of `OOCS\LynxComponent\Model\Registry`, declared in a module's **global** `etc/di.xml`.
+A component is a `type` with `@component` in `etc/components/<Template>.graphqls` (GraphQL SDL syntax, one file per
+template, named after it). All `.graphqls` files of enabled modules are merged in `<sequence>` order; directives and
+scalars: `OOCS_LynxComponent/etc/components/directives.graphqls`, shared enums (`Align`, `Justify`,
+`TextAlign`, `Rounded`…): `enums.graphqls` beside it. Definitions are cached in cache type `lynx_component`.
 
-## Entry keys
+## `@component` arguments
 
-| Key | Required | XML type | What it does |
-|---|---|---|---|
-| item `name` | yes | - | Registered name (`vendor_highlight`). Stored on every node (`name`); the key deferred data is fetched under. Prefix with your vendor; never rename. |
-| `component` | yes | `string` | `Vendor_Module::<path under src, no extension>`. Registry exposes it as `key` = `Vendor_Module/<path>`, also stored on every node (`component`), and resolved by each theme's component registry to the `.vue`/`.tsx` (theme overrides win). |
-| `label` | yes | `string` | Name in the picker and outline; default node label. |
-| `description` | no | `string` | Tooltip in the picker, and behind the **?** icon of the settings panel. |
-| `icon` | no | `string` | Phosphor Icons class, regular weight: `ph-image`, `ph-table`, `ph-tag-simple`, `ph-star`. Generic icon when omitted. |
-| `group` | no | `string` | snake_case key. Picker heading (`product_list` -> "Product List", General last) and the value slots filter on. Omitted -> `general`. No list to register: a new key is a new group. |
-| `zones` | no | `array` | Zones it can be added to (below). |
-| `available_on` | no | `array` | Page paths it can be added to (below). |
-| `settings` | no | `array` | Settings panel; each key is a prop. See skill component-settings. |
-| `slots` | no | `array` | Named child areas (below). |
-| `provider` | no | `object` | `Vendor\Module\Provider\X\Proxy`, implements `OOCS\LynxComponent\Api\ComponentProviderInterface`. Removed before the config reaches the browser. See skill provider. |
-| `hidden` | no | `boolean` | `true`: not in the picker (`Registry::getComponents()` skips it); still registered, so nodes your code inserts render and their provider runs. |
+| Argument | Required | What it does |
+|---|---|---|
+| `code` | yes | Registered name (`vendor_highlight`). Stored on every node (`name`); the key deferred data is fetched under. Prefix with your vendor; never rename. |
+| `template` | yes | `Vendor_Module::<path under src, no extension>`. Registry exposes it as `key` = `Vendor_Module/<path>`, also stored on every node (`component`), and resolved by each theme's component registry to the `.vue`/`.tsx` (theme overrides win). |
+| `label` | yes | Name in the picker and outline; default node label. |
+| `icon` | no | Phosphor Icons class, regular weight: `ph-image`, `ph-table`, `ph-tag-simple`, `ph-star`. Generic icon when omitted. |
+| `group` | no | snake_case key. Picker heading (`product_list` -> "Product List", General last) and the value slots filter on. Omitted -> `general`. No list to register: a new key is a new group. |
+| `zones` | no | Zones it can be added to (below). |
+| `availableOn` | no | Page paths it can be added to (below). |
+| `provider` | no | Class name string, backslashes escaped, no `\Proxy` (`"Vendor\\Module\\Provider\\X"`); implements `OOCS\LynxComponent\Api\ComponentProviderInterface`. Created only when a node needs it; never sent to the browser. See skill provider. |
+| `hidden` | no | `true`: not in the picker (`Registry::getComponents()` skips it); still registered, so nodes your code inserts render and their provider runs. |
+
+The string above the `type` is the description: tooltip in the picker, and behind the **?** icon of the settings panel.
 
 `Registry` API (for code that inspects it): `getComponents(string $path = '')` (picker list, filtered by
-`available_on` when a path is given, `hidden` excluded), `getNames()`, `has(string $name)`,
-`getDefaults(string $name)`, `getProviderMap()`.
+`availableOn` when a path is given, `hidden` excluded), `getNames()`, `has(string $name)`,
+`getDefaults(string $name)`, `getProvider(string $name)`.
+
+## Fields
+
+| Field | Declared as | Becomes |
+|---|---|---|
+| Setting | `title: LocalizedText! @setting(label: "Title", default: "")` | Settings panel control and a prop; see skill component-settings |
+| Slot | `actions: Slot @slot(label: "Buttons", allow: ["text"], max: 1)` | Child area (below); not a prop |
+| Provider data | `products: [VendorProduct!]! @optional` | A prop the provider adds |
+
+A string above a field is its description (settings panel **?**, JSDoc in the generated types).
+
+Provider data types:
+
+| SDL | TypeScript |
+|---|---|
+| `String`, `Int`, `Float`, `Boolean` | `string`, `number`, `number`, `boolean` |
+| enum | union of its values |
+| object `type` declared in a `.graphqls` (no `@component`) | `Lynx.<TypeName>` interface |
+| `[X!]!`, nestable (`[[X!]!]!`) | `X[]`, `X[][]` |
+| `StringMap` | `Record<string, string>` (labels, urls) |
+| `Json` | `any`; not filtered inside |
+| `X!` / `X` / `@optional` | never null / `\| null` / may be missing (`?`), as a deferred provider's data before it arrives |
+
+A type shared by several components goes in the file of the template that mainly uses it; others reuse it. Type and
+enum names are global: prefix them with your vendor.
+
+`@inherit(from: "VendorHighlight", except: ["tone"])` on a `type` copies the other type's fields first (but those in
+`except`); fields declared here override them. Built-in use: Search Results and Advanced Search Results share the
+Product Listing template and its provider data.
+
+**Only declared fields reach the browser.** `OOCS\LynxComponent\Helper\Schema\PropsFilter` drops every key the code's
+`.graphqls` does not declare, recursively through data types and lists, keeping `_key`; inside `Json` and `StringMap`
+nothing is filtered. No casting, no filling. Developer mode logs
+`Lynx props: <code>.<path> is not declared in etc/components/*.graphqls, dropped.` to `system.log`.
+
+**Generated types.** `bin/magento lynx:static:deploy` (also `lynx:workspace:setup`, `lynx:static:test`) writes
+`<theme>/lynx/dist/props.d.ts`: a global `Lynx` namespace with each enum as a string union, each data type as an
+interface, and one interface per component named as its `type` (settings and data fields, plus `_key?`). The Vue theme lists the file in
+`globalTypeFiles` of its `vite.config.js` so the compiler reads runtime props from it.
+
+```ts
+const props = defineProps<Lynx.VendorHighlight>()                                  // Vue
+export default function Highlight(props: Lynx.VendorHighlight & { slots?: NodeSlots }) // React
+defineProps<Lynx.VendorA | Lynx.VendorB>() // one template, several codes: fields of only one are optional
+type Props = (Lynx.VendorA | Lynx.VendorB) & { slots?: NodeSlots } // React: brackets before &
+```
 
 ## Zones
 
@@ -33,21 +81,16 @@ The `components` argument of `OOCS\LynxComponent\Model\Registry`, declared in a 
 | `backstage` | Components that render nothing (trackers, scripts). On every page including checkout, mounted inside a hidden element. Only components that list `backstage` can go there. |
 | _(omitted)_ | header, content and footer; not backstage |
 
-```xml
-<item name="zones" xsi:type="array">
-    <item name="content" xsi:type="string">content</item>
-</item>
+```graphql
+type VendorHighlight @component(…, zones: ["content"])
 ```
 
-## available_on
+## availableOn
 
-Full action names; a trailing `*` matches by prefix. The item names are free, the values count.
+Full action names; a trailing `*` matches by prefix.
 
-```xml
-<item name="available_on" xsi:type="array">
-    <item name="product" xsi:type="string">catalog_product_view*</item>
-    <item name="cart" xsi:type="string">checkout_cart_index</item>
-</item>
+```graphql
+type VendorHighlight @component(…, availableOn: ["catalog_product_view*", "checkout_cart_index"])
 ```
 
 | Value | Pages |
@@ -88,32 +131,22 @@ The editor only knows the pages declared in the `pages` argument of `OOCS\LynxPa
 | `account_section` | Sections of My Account | My Account: Section (one per component) |
 | `general` | Not Found, and every component without a group | Product, Product Media, Product Detail, Product Listing, Checkout, Checkout Cart |
 
-Example: `group` `product_attribute` + `available_on` `catalog_product_view*` can be dropped below the price of
+Example: `group` `product_attribute` + `availableOn` `catalog_product_view*` can be dropped below the price of
 Product Detail.
 
 ## Slots
 
-```xml
-<item name="slots" xsi:type="array">
-    <item name="default" xsi:type="array">
-        <item name="label" xsi:type="string">Content</item>
-    </item>
-    <item name="actions" xsi:type="array">
-        <item name="label" xsi:type="string">Buttons</item>
-        <item name="allowed_groups" xsi:type="array">
-            <item name="text" xsi:type="string">text</item>
-            <item name="media" xsi:type="string">media</item>
-        </item>
-        <item name="max_per_component" xsi:type="number">1</item>
-    </item>
-</item>
+```graphql
+default: Slot @slot(label: "Content")
+actions: Slot @slot(label: "Buttons", allow: ["text", "media"], max: 1)
 ```
 
-| Key | What it does |
+| Argument | What it does |
 |---|---|
 | `label` | Slot name in the outline, and on the empty-slot placeholder in the preview ("Show all outlines") |
-| `allowed_groups` | The picker opened from this slot lists only these groups; dragging others in is blocked. Omitted: any component. |
-| `max_per_component` | How many times each component (counted by registered name) may be in the slot; the picker greys out a full one as **Already added**. Omitted: no limit. |
+| `allow` | Accepted groups: the picker opened from this slot lists only these groups; dragging others in is blocked. Omitted: any component. |
+| `max` | How many times each component (counted by registered name) may be in the slot; the picker greys out a full one as **Already added**. Omitted: no limit. |
+| `name` | The stored slot name when it is no valid field name (`product_info_additional: Slot @slot(label: "Product Options", name: "product.info.additional")`). |
 
 Rendering: Vue `<slot />` / `<slot name="x" />`, test `$slots.x`; React `slots?.default` / `slots?.x`, each already
 rendered. An empty slot (no visible child) is not passed at all.
@@ -124,52 +157,51 @@ Any block can declare it; DynamicNode removes it from the props and applies it: 
 root (attribute fallthrough), or a `<div data-align-wrap style="display:contents">` wrapper in React. Values other
 than `wide`/`full` do nothing.
 
-```xml
-<item name="align" xsi:type="array">
-    <item name="label" xsi:type="string">Align</item>
-    <item name="description" xsi:type="string">How far this block reaches inside a constrained Group: None keeps the content width like the blocks around it, Wide reaches the site width, Full runs edge to edge. No effect outside a Group</item>
-    <item name="type" xsi:type="string">select</item>
-    <item name="default" xsi:type="string">none</item>
-    <item name="options" xsi:type="array">
-        <item name="none" xsi:type="array"><item name="value" xsi:type="string">none</item><item name="label" xsi:type="string">None</item></item>
-        <item name="wide" xsi:type="array"><item name="value" xsi:type="string">wide</item><item name="label" xsi:type="string">Wide</item></item>
-        <item name="full" xsi:type="array"><item name="value" xsi:type="string">full</item><item name="label" xsi:type="string">Full</item></item>
-    </item>
-</item>
+```graphql
+"How far this block reaches inside a constrained Group: None keeps the content width like the blocks around it, Wide reaches the site width, Full runs edge to edge. No effect outside a Group"
+align: Align! @setting(label: "Align", default: "none")
 ```
 
-## Extending built-in components
+`Align` (None / Wide / Full) is in `OOCS_LynxComponent/etc/components/enums.graphqls`.
 
-Magento merges `di.xml` arrays by item name, so another module's entry can be extended with only the path to the
-change (global `etc/di.xml`, and the declaring module in your `<sequence>`).
+## Changing another module's component
 
-Let your group into a built-in slot:
+`extend type` / `extend enum` in your own `etc/components/*.graphqls`, with the declaring module in your `<sequence>` (the
+later module wins). Find the type name in that module's `etc/components/`.
 
-```xml
-<item name="default_product_detail_simple" xsi:type="array">
-    <item name="slots" xsi:type="array">
-        <item name="info_after" xsi:type="array">
-            <item name="allowed_groups" xsi:type="array">
-                <item name="vendor_badges" xsi:type="string">vendor_badges</item>
-            </item>
-        </item>
-    </item>
-</item>
+```graphql
+extend type VendorHighlight @component(label: "Callout", template: "Other_Module::Components/Callout") {
+  tone: VendorHighlightTone! @setting(label: "Style", default: "outline") @replace  # change a field
+  title: LocalizedText @remove                                                     # drop a field
+  badge: String @optional                                                          # add a field
+}
+extend type VendorProduct { label: String }           # add a field to a data type
+extend enum VendorHighlightTone { STRONG @label(text: "Strong") }  # add a select option
+extend type VendorOldBlock @remove                    # unregister a component
 ```
 
-Repeat for `default_product_detail_configurable`, `_bundle`, `_grouped`, `_downloadable` as needed.
+Redeclaring an existing field without `@replace` is an error, as is `@replace`/`@remove` on a field that does not
+exist, a duplicate type name or a duplicate `code`; every error names the file. Fill the data of a field you add with
+an `afterResolve` plugin on the component's provider.
+
+Let your group into a built-in slot (redeclare the slot with `@replace`, keeping its label and groups):
+
+```graphql
+extend type ProductDetailSimple {
+  info_after: Slot @slot(label: "Below Add to Cart", allow: ["layout", "text", "media", "form", "product_list", "product_attribute", "general", "vendor_badges"]) @replace
+}
+```
+
+Repeat for `ProductDetailConfigurable`, `ProductDetailBundle`, `ProductDetailGrouped`, `ProductDetailDownloadable` as
+needed (read each slot's current `allow` in their `.graphqls`).
 
 Add a slot to a built-in component: declare it the same way (it appears in the outline), then override the
 component file in your theme so it renders the slot:
 
-```xml
-<item name="default_product_detail_simple" xsi:type="array">
-    <item name="slots" xsi:type="array">
-        <item name="title_after" xsi:type="array">
-            <item name="label" xsi:type="string">Below Title</item>
-        </item>
-    </item>
-</item>
+```graphql
+extend type ProductDetailSimple {
+  title_after: Slot @slot(label: "Below Title")
+}
 ```
 
 ```vue
@@ -182,8 +214,8 @@ Override path: `<theme>/<Vendor_Module>/lynx/<vue|react>/src/<same path as in th
 ## How a node is rendered
 
 1. `OOCS\LynxComponent\Model\LayoutResolver::resolve()` walks every zone and slot: drops hidden nodes and nodes whose
-   name is no longer registered (logged as an error), numbers node ids per zone, fills each setting's `default` under
-   the stored props, then calls the provider (or defers it).
+   code is no longer registered (logged as an error), numbers node ids per zone, fills each setting's `default` under
+   the stored props, then calls the provider (or defers it) and filters the result through `PropsFilter`.
 2. The theme's `DynamicNode` (`OOCS_LynxTheme`) looks up `item.component` in the generated component registry; no
    file for the theme -> renders nothing. It merges deferred data (`page.props[<name>]`) over the stored props,
    pulls out `align`, passes slots, and in the preview adds `data-lynx-id` / `data-lynx-label`.

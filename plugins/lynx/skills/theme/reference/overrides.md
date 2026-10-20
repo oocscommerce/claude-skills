@@ -48,8 +48,8 @@ folder, then parents' override folders, then the module.
 | `module-lynx-theme/view/frontend/lynx/vue/src/stores/global/messagesStore.ts` | `<theme>/OOCS_LynxTheme/lynx/vue/src/stores/global/messagesStore.ts` |
 | `Vendor/Module/view/frontend/lynx/react/src/Components/Highlight.tsx` | `<theme>/Vendor_Module/lynx/react/src/Components/Highlight.tsx` (React theme) |
 
-Finding the file behind a component: its `components` entry in a module's `etc/di.xml` has
-`<item name="component">OOCS_LynxCatalog::Components/Product/Simple</item>`; `::` becomes `/` and the file is
+Finding the file behind a component: its `@component` in a module's `etc/components/*.graphqls` has
+`template: "OOCS_LynxCatalog::Components/Product/Simple"`; `::` becomes `/` and the file is
 `Components/Product/Simple.vue` / `.tsx` under that module's `lynx/<framework>/src/`.
 
 ## Override not picked up?
@@ -63,13 +63,12 @@ Finding the file behind a component: its `components` entry in a module's `etc/d
 ## React node contract
 
 A component receives its props and, when it has children, a `slots` prop with each slot already rendered
-(`NodeSlots`, a global type; `LayoutItem` too, from `OOCS_LynxTheme/types/inertia.d.ts`). Nothing needs to be attached
+(`NodeSlots`, a global type; `LayoutItem` too, from `OOCS_LynxTheme/types/inertia.d.ts`). Its props type is the
+generated `Lynx.<TypeName>`; an override keeps the original's type. Nothing needs to be attached
 to the root; `align` is applied by a wrapper element. Headless components return `null`.
 
 ```tsx
-type Props = { title: string; slots?: NodeSlots }
-
-export default function Panel({ title, slots }: Props) {
+export default function Panel({ title, slots }: Lynx.VendorPanel & { slots?: NodeSlots }) {
     return (
         <section className="w-full">
             <h2 className="text-xl font-semibold">{title}</h2>

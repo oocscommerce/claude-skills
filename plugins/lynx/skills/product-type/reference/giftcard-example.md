@@ -7,8 +7,13 @@ constant `TYPE_CODE`, method `getAmounts($product)` returning floats). Its buy r
 
 ## Option b
 
-Keeps `default_product_detail_simple` (its `available_on` extended as in SKILL.md step 3a, like Product and Product
+Keeps `default_product_detail_simple` (its `availableOn` extended as in SKILL.md step 3a, like Product and Product
 Media) and adds a Gift Card Options block in the Product Options slot.
+
+### `etc/components/GiftCardOptions.graphqls`
+
+As in SKILL.md step 3b: `VendorGiftCardOptions` (code `vendor_giftcard_options`) with `product_id`, `amounts`
+(`[VendorGiftCardAmount!]!`, each `value` and `price`) and `labels`, all `@optional`.
 
 ### Provider `Provider/GiftCardOptions.php`
 
@@ -74,18 +79,17 @@ import { computed, onUnmounted, ref, watch } from 'vue'
 import { useProductStore } from 'OOCS_LynxCatalog/stores/productStore'
 import { formatPrice } from 'OOCS_LynxTheme/utils/price'
 
-type Amount = { value: number; price: number }
-
-const props = withDefaults(
-    defineProps<{ product_id?: number; amounts?: Amount[]; labels?: Record<string, string> }>(),
-    { product_id: 0, amounts: () => [], labels: () => ({}) }
-)
+const props = withDefaults(defineProps<Lynx.VendorGiftCardOptions>(), {
+    product_id: 0,
+    amounts: () => [],
+    labels: () => ({}),
+})
 
 // This block's key among the contributions to the product's request
 const CONTRIBUTOR = 'vendor_giftcard'
 
 const optionsStore = useProductStore()
-const amount = ref<Amount | null>(null)
+const amount = ref<Lynx.VendorGiftCardAmount | null>(null)
 const name = ref('')
 const email = ref('')
 const message = ref('')
@@ -168,8 +172,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useProductStore } from 'OOCS_LynxCatalog/stores/productStore'
 import { formatPrice } from 'OOCS_LynxTheme/utils/price'
 
-type Amount = { value: number; price: number }
-type Props = { product_id?: number; amounts?: Amount[]; labels?: Record<string, string> }
+type Props = Lynx.VendorGiftCardOptions
 
 // This block's key among the contributions to the product's request
 const CONTRIBUTOR = 'vendor_giftcard'
@@ -182,7 +185,7 @@ export default function GiftCardOptions({ product_id = 0, amounts = EMPTY_LIST, 
     const storeRef = useRef(optionsStore)
     storeRef.current = optionsStore
 
-    const [amount, setAmount] = useState<Amount | null>(null)
+    const [amount, setAmount] = useState<Lynx.VendorGiftCardAmount | null>(null)
     const [name, setName] = useState('')
     const [email, setEmail] = useState('')
     const [message, setMessage] = useState('')
@@ -258,72 +261,36 @@ blocking the POST while a field is empty, the POST, the response messages and th
 
 ## Option c
 
-### Registry entry (global `etc/di.xml`, inside `OOCS\LynxComponent\Model\Registry` → `components`)
+### `etc/components/GiftCard.graphqls`
 
-```xml
-<item name="vendor_product_detail_giftcard" xsi:type="array">
-    <item name="component" xsi:type="string">Vendor_GiftCardLynx::Components/Product/GiftCard</item>
-    <item name="provider" xsi:type="object">Vendor\GiftCardLynx\Provider\Product\Detail\GiftCard\Proxy</item>
-    <item name="label" xsi:type="string">Product Detail (Gift Card)</item>
-    <item name="description" xsi:type="string">Product detail page for a gift card: amount, recipient and message</item>
-    <item name="icon" xsi:type="string">ph-tag</item>
-    <item name="group" xsi:type="string">product_page</item>
-    <item name="zones" xsi:type="array">
-        <item name="content" xsi:type="string">content</item>
-    </item>
-    <item name="available_on" xsi:type="array">
-        <item name="vendor_giftcard" xsi:type="string">catalog_product_view_type_vendor_giftcard</item>
-    </item>
-    <item name="slots" xsi:type="array">
-        <item name="price_after" xsi:type="array">
-            <item name="label" xsi:type="string">Below Price</item>
-            <item name="allowed_groups" xsi:type="array">
-                <item name="layout" xsi:type="string">layout</item>
-                <item name="text" xsi:type="string">text</item>
-                <item name="media" xsi:type="string">media</item>
-                <item name="form" xsi:type="string">form</item>
-                <item name="product_list" xsi:type="string">product_list</item>
-                <item name="product_attribute" xsi:type="string">product_attribute</item>
-                <item name="general" xsi:type="string">general</item>
-            </item>
-        </item>
-        <item name="product.info.additional" xsi:type="array">
-            <item name="label" xsi:type="string">Product Options</item>
-            <item name="allowed_groups" xsi:type="array">
-                <item name="product_option" xsi:type="string">product_option</item>
-            </item>
-            <item name="max_per_component" xsi:type="number">1</item>
-        </item>
-        <item name="info_after" xsi:type="array">
-            <item name="label" xsi:type="string">Below Add to Cart</item>
-            <!-- allowed_groups as price_after -->
-        </item>
-    </item>
-    <!-- Read by AbstractDetail: the wish list / compare URL is sent only when on -->
-    <item name="settings" xsi:type="array">
-        <item name="show_wishlist" xsi:type="array">
-            <item name="label" xsi:type="string">Show Wishlist</item>
-            <item name="type" xsi:type="string">select</item>
-            <item name="default" xsi:type="string">yes</item>
-            <item name="options" xsi:type="array">
-                <item name="yes" xsi:type="array"><item name="value" xsi:type="string">yes</item><item name="label" xsi:type="string">Yes</item></item>
-                <item name="no" xsi:type="array"><item name="value" xsi:type="string">no</item><item name="label" xsi:type="string">No</item></item>
-            </item>
-        </item>
-        <item name="show_compare" xsi:type="array">
-            <item name="label" xsi:type="string">Show Compare</item>
-            <item name="type" xsi:type="string">select</item>
-            <item name="default" xsi:type="string">no</item>
-            <!-- options as show_wishlist -->
-        </item>
-    </item>
-</item>
+```graphql
+"Product detail page for a gift card: amount, recipient and message"
+type VendorProductDetailGiftCard @component(
+  code: "vendor_product_detail_giftcard"
+  template: "Vendor_GiftCardLynx::Components/Product/GiftCard"
+  provider: "Vendor\\GiftCardLynx\\Provider\\Product\\Detail\\GiftCard"
+  label: "Product Detail (Gift Card)"
+  group: "product_page"
+  icon: "ph-tag"
+  zones: ["content"]
+  availableOn: ["catalog_product_view_type_vendor_giftcard"]
+) @inherit(from: "ProductDetailSimple", except: ["original_price", "is_on_sale", "tier_prices"]) {
+  amounts: [VendorGiftCardDetailAmount!]! @optional
+}
+
+type VendorGiftCardDetailAmount {
+  value: Float!
+}
 ```
 
-Copy the full `allowed_groups` lists and the settings (with their `description`) from
-`default_product_detail_simple` in `module-lynx-catalog/etc/di.xml` rather than writing them from memory. The
-gallery and its Below Gallery slot belong to Product Media, the breadcrumbs to Product: both already list your path
-(SKILL.md step 3).
+`@inherit` copies from `ProductDetailSimple` (`module-lynx-catalog/etc/components/Simple.graphqls`) the `show_wishlist` /
+`show_compare` settings that `AbstractDetail` reads (the wish list / compare URL is sent only when on), the slots
+`price_after` "Below Price", `product_info_additional` (stored as `product.info.additional`, "Product Options",
+`product_option` only, `max: 1`) and `info_after` "Below Add to Cart" with their full `allow` lists, and the data
+fields `AbstractDetail` sends (`product_id`, `title`, `sku`, `price`, `is_salable`, `rating`, `urls`, `sections`,
+`labels`). `except` drops what this provider never sends (no `addQuantityProps()` / `addRegularPrice()`). Declare
+anything else your `addTypeProps()` returns, or the server drops it. The gallery and its Below Gallery slot belong to
+Product Media, the breadcrumbs to Product: both already list your path (SKILL.md step 3).
 
 ### Component changes
 
@@ -337,15 +304,11 @@ analytics and the three slots. Drop the tier prices and the struck-through price
 
 ```vue
 <script setup lang="ts">
-// Imports, the props of Simple.vue and its wish list, compare and analytics code stay as they are
+// Imports and the wish list, compare and analytics code of Simple.vue stay as they are
 
-const props = withDefaults(
-    defineProps<{
-        // …every prop of Simple.vue, plus:
-        amounts?: { value: number }[]
-    }>(),
-    { /* …defaults of Simple.vue, plus: */ amounts: () => [] }
-)
+const props = withDefaults(defineProps<Lynx.VendorProductDetailGiftCard>(), {
+    /* …defaults of Simple.vue, plus: */ amounts: () => [],
+})
 
 const amount = ref<number | null>(null)
 const recipient = ref({ name: '', email: '' })
@@ -378,11 +341,8 @@ async function addToCart() {
 ```
 
 ```tsx
-// Imports, the props of Simple.tsx and its wish list, compare and analytics code stay as they are
-type Props = {
-    // …every prop of Simple.tsx, plus:
-    amounts?: { value: number }[]
-}
+// Imports and the wish list, compare and analytics code of Simple.tsx stay as they are
+type Props = Lynx.VendorProductDetailGiftCard & { slots?: NodeSlots }
 
 export default function GiftCard({ amounts = EMPTY_LIST, /* …as Simple.tsx */ }: Props) {
     const [amount, setAmount] = useState<number | null>(null)
@@ -435,7 +395,7 @@ namespace Vendor\GiftCardLynx\Setup\Patch\Data;
 use Magento\Framework\Serialize\Serializer\Json;
 use Magento\Framework\Setup\ModuleDataSetupInterface;
 use Magento\Framework\Setup\Patch\DataPatchInterface;
-use OOCS\LynxCatalog\Setup\Patch\Data\SplitProductMedia;
+use OOCS\LynxCatalog\Setup\Patch\Data\InstallCatalogLayouts;
 use OOCS\LynxPageBuilder\Model\Design;
 
 class InstallGiftCardLayout implements DataPatchInterface
@@ -450,8 +410,8 @@ class InstallGiftCardLayout implements DataPatchInterface
 
     public static function getDependencies(): array
     {
-        // Runs after InstallCatalogLayouts: the simple layout already has the Product frame
-        return [SplitProductMedia::class];
+        // The simple layout to copy is written there
+        return [InstallCatalogLayouts::class];
     }
 
     public function getAliases(): array

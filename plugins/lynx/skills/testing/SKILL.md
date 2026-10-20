@@ -14,7 +14,7 @@ utils, and runs them per theme.
 - Nothing to install: Vitest, happy-dom, Vue Test Utils and Testing Library come with the build tools
   (`@oocs/lynx-vue`, `@oocs/lynx-react`) that `bin/magento lynx:workspace:setup` installs.
 - Read the source you test, and for a component also its PHP provider (`resolve()`, `resolveSample()`) and its
-  settings in `etc/di.xml`: they give the real prop shapes, labels and URLs.
+  declaration in `etc/components/*.graphqls`: they give the real prop shapes (`Lynx.<TypeName>`), labels and URLs.
 
 ## Steps
 

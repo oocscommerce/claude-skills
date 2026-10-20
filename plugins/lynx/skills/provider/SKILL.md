@@ -1,18 +1,18 @@
 ---
 name: provider
-description: Writes the PHP provider behind a Lynx PageBuilder component - a class extending OOCS\LynxComponent\Model\AbstractComponentProvider whose resolve() turns a node's saved settings into the props the Vue/React component renders (Magento data, translated `labels`, `_i18n`/image/url settings), with deferred()/deferredGroup()/optional() for loading after the page or on demand (the `lazy` toggle convention), full page cache tags through PageCacheIdentities, the Lynx Component Data cache, and SampleProviderInterface::resolveSample() for sample-data preview pages. Use when a developer says "load products/data into my Lynx component", "component provider", "translate labels for a Lynx component", "defer / lazy load a block", "page cache not refreshing for my block", or "sample data in the PageBuilder preview". Use with the basics and component skills.
+description: Writes the PHP provider behind a Lynx PageBuilder component - a class extending OOCS\LynxComponent\Model\AbstractComponentProvider whose resolve() turns a node's saved settings into the props the Vue/React component renders (Magento data, translated `labels`, localized/image/url settings), with deferred()/deferredGroup()/optional() for loading after the page or on demand (the `lazy` toggle convention), full page cache tags through PageCacheIdentities, the Lynx Component Data cache, and SampleProviderInterface::resolveSample() for sample-data preview pages. Use when a developer says "load products/data into my Lynx component", "component provider", "translate labels for a Lynx component", "defer / lazy load a block", "page cache not refreshing for my block", or "sample data in the PageBuilder preview". Use with the basics and component skills.
 ---
 # Lynx component provider
 
-Produces a provider class and its registration on a component entry. The provider runs on the server for every
+Produces a provider class and its `provider` argument on the component's `@component`. The provider runs on the server for every
 page (or partial request) that renders a node of the component; what `resolve()` returns is exactly what the
 component receives as props.
 
 ## Before you start
 
-- The component entry exists in global `etc/di.xml` (skill **component**); settings are declared (skill
+- The component is declared in `etc/components/<Template>.graphqls` (skill **component**); settings are declared (skill
   **component-settings**).
-- A component needs a provider when it shows Magento data, has `_i18n` / `image` / `url` settings, or shows any text
+- A component needs a provider when it shows Magento data, has localized / `Image` / `Url` settings, or shows any text
   of its own (button labels, `aria-label`, messages).
 - Find a similar built-in provider to imitate, under `vendor/oocscommerce/module-lynx-*/Provider/`:
   `OOCS\LynxThemeComponent\Provider\Page\BackToTop` (labels only),
@@ -73,18 +73,27 @@ need):
 
 All methods get the node's props (saved settings + defaults), so each node can decide from a setting.
 
-### 2. Register it as a `\Proxy`
+### 2. Name it on the component and declare its props
 
-```xml
-<item name="vendor_highlight" xsi:type="array">
-    <item name="component" xsi:type="string">Vendor_Module::Components/Highlight</item>
-    <item name="provider" xsi:type="object">Vendor\Module\Provider\Highlight\Proxy</item>
-    …
-</item>
+```graphql
+type VendorHighlight @component(
+  code: "vendor_highlight"
+  template: "Vendor_Module::Components/Highlight"
+  provider: "Vendor\\Module\\Provider\\Highlight"
+  …
+) {
+  title: LocalizedText! @setting(label: "Title", default: "Free shipping over $50")
+  "Every string the component shows, translated by the provider"
+  labels: StringMap! @optional
+}
 ```
 
-The pool is built on every request; the proxy means the provider and its dependencies are created only on pages that
-contain the component. A provider that does not implement `ComponentProviderInterface` is silently ignored.
+The class name as a string, backslashes escaped, no `\Proxy`: the registry creates a provider only when a node of
+the component is rendered. The class must implement `ComponentProviderInterface`. **Every key `resolve()` adds must
+be a field of the type** (`!` never null, no `!` may be null, `@optional` may be missing, data types and lists
+declared in the `.graphqls`): the server drops undeclared keys, and developer mode logs
+`Lynx props: <code>.<path> is not declared in etc/components/*.graphqls, dropped.` to `system.log`. The fields also
+become the component's `Lynx.<TypeName>` type.
 
 ### 3. Write `resolve()`
 
@@ -100,8 +109,8 @@ if (!$product) {
 }
 ```
 
-- **Resolve portable settings**: `LocalizedText::get()` for `_i18n`, `OOCS\LynxThemeComponent\Helper\MediaUrl::url()`
-  for `image`, `OOCS\LynxThemeComponent\Helper\StoreLink::path()` for `url` (also inside `array` items, with
+- **Resolve portable settings**: `LocalizedText::get()` for localized text, `OOCS\LynxThemeComponent\Helper\MediaUrl::url()`
+  for `Image`, `OOCS\LynxThemeComponent\Helper\StoreLink::path()` for `Url` (also inside array items, with
   `?? ''` because the server does not fill sub-field defaults). Add `OOCS_LynxThemeComponent` to `<sequence>` /
   `composer.json` when using its helpers.
 - **Text the component shows goes in `labels`**, translated with `__()`. Reuse Magento's own phrases ("Add to Cart",
@@ -113,7 +122,7 @@ if (!$product) {
   Never build everything and `unset` afterwards; the component renders the part only when the prop is there:
 
 ```php
-if (($props['show_wishlist'] ?? 'yes') === 'yes' && $this->wishlistHelper->isAllow()) {
+if (($props['show_wishlist'] ?? true) && $this->wishlistHelper->isAllow()) {
     $props['urls']['add_to_wishlist'] = $this->urlBuilder->getUrl('wishlist/index/add');
     $props['labels'] += ['addToFavorites' => (string) __('Add to Wish List')];
 }
@@ -121,9 +130,9 @@ if (($props['show_wishlist'] ?? 'yes') === 'yes' && $this->wishlistHelper->isAll
 
 - **No per-visitor data in props** (cart, wishlist, customer name): page props go through the full page cache. Read it
   in the browser from customer data.
-- `resolve()` is memoized per request by component name + props: two identical nodes on one page resolve once.
-- `LayoutResolver` calls `resolve()` from outside, so other modules can extend a provider with an `after` plugin on
-  `resolve`.
+- `resolve()` is memoized per request by component code + props: two identical nodes on one page resolve once.
+- `LayoutResolver` calls `resolve()` from outside, so other modules can extend a provider with an `afterResolve`
+  plugin, declaring the keys they add with `extend type` in their own `.graphqls` (skill **component**).
 
 ### 4. Tag the page for the full page cache
 
@@ -172,7 +181,7 @@ public function deferredGroup(array $props): string
 ```
 
 How it works: `LayoutResolver` does not call `resolve()`; it registers it with Inertia under the **component's
-registered name** and sends the node with its stored props plus `_key` (= that name). `deferred` is announced and
+code** and sends the node with its stored props plus `_key` (= that code). `deferred` is announced and
 fetched by Inertia after mount, one request per group; `optional` wins over `deferred` and is never fetched unless
 the component calls `router.reload({ only: [_key], preserveUrl: true })`. DynamicNode merges the data over the stored
 props when it arrives, so the component just sees props that are `undefined` at first: render an `l-skeleton`
@@ -222,15 +231,16 @@ interface resolve normally with the admin browser's real session. Do not call `$
 
 ## Rules
 
-- **Always `\Proxy`** for `provider` (and for any option `source`).
+- **Declare every returned key in the `.graphqls`**, nested ones included (or use `Json` for a free-form value); an
+  undeclared key never reaches the browser.
 - **Settings arrive complete**: read `$props['key']` directly for top-level settings (defaults are filled before the
   provider runs); use fallbacks only for `array` sub-fields and props that may be absent.
 - **Deferred/optional nodes get their stored props first**: until the data arrives the component sees raw setting
-  values (an `_i18n` object, a media path) and `undefined` data props. Type such props loosely or check the
-  data prop before using them (`ProductCarousel` types `title?: string | Record<string, string>`).
+  values (a localized object, a media path) and `undefined` data props. Check the type or the data prop before
+  using them (`ProductCarousel` renders `title` only while it is a string).
 - **Labels of a deferred/optional provider arrive with its data.** Text needed on the first paint belongs to a
   provider that is not deferred.
-- **One key per component**: deferred data is keyed by the registered name, so two nodes of the same component on a
+- **One key per component**: deferred data is keyed by the component code, so two nodes of the same component on a
   page share it and the last one resolved wins. Do not defer a component that can appear several times on a page.
 - **Deferred data is not in the SSR HTML** and each group / optional reload is one more (FPC-cached) request: do not
   split a page into many groups, and never defer what search engines must see.
@@ -241,9 +251,11 @@ interface resolve normally with the admin browser's real session. Do not call `$
 
 ## Check
 
-1. `bin/magento cache:clean` after di.xml changes; `setup:di:compile` in production mode (proxies are generated).
+1. After a `.graphqls` change: `bin/magento cache:clean lynx_component` (plus `lynx:compile components` when the site runs
+   compiled) and `bin/magento lynx:static:deploy` for the types; after a constructor change in production mode,
+   `setup:di:compile`. No `Lynx props: … dropped.` line in `system.log` (developer mode).
 2. Storefront: the component receives the resolved props (Vue/React devtools, or the Inertia page JSON in the HTML / the `X-Inertia` response of a visit).
-3. Store view in another locale: `_i18n` settings and `labels` come out translated.
+3. Store view in another locale: localized settings and `labels` come out translated.
 4. Save an entity the block shows in the admin: the page refreshes (FPC tags work); check the deferred request too.
 5. Deferred: page HTML has the node without data, one follow-up request per group fills it; placeholder has no
    layout shift. Optional/lazy: no request until the component asks (open the tab).
@@ -252,7 +264,7 @@ interface resolve normally with the admin browser's real session. Do not call `$
 
 ## Reference
 
-- `reference/deferred-and-lazy.md` - full `lazy` example (provider, di.xml toggle, Vue and React), deferred flow.
+- `reference/deferred-and-lazy.md` - full `lazy` example (provider, `.graphqls` toggle, Vue and React), deferred flow.
 - `reference/provider-examples.md` - images/links/translations provider, catalog provider with cache tags,
   `ComponentCache` example, sample provider.
 - Skills: **basics**, **component**, **component-settings**.

@@ -16,19 +16,16 @@ DynamicNode: props = { ...node.props, ...page.props[node.name] }
 
 - Registered by `OOCS\LynxComponent\Model\LayoutResolver::resolveProps()` through the page's defer registrar;
   `optional()` is asked first and wins.
-- The key is the component's registered name (item name in di.xml), also given to the node as `_key`.
+- The key is the component's `code`, also given to the node as `_key`.
 - The partial request goes through the full page cache on its own (Lynx keeps it apart from the page with its
   `_lynx` / `_lynx_only` parameters), so tags must be added inside `resolve()`.
 
 ## Merchant toggle: `deferred` (fetched right after load)
 
-```xml
-<item name="deferred" xsi:type="array">
-    <item name="label" xsi:type="string">Load after the page</item>
-    <item name="description" xsi:type="string">On: fetched right after the page loads, so the page is sent sooner. Off: sent with the page and visible to search engines</item>
-    <item name="type" xsi:type="string">toggle</item>
-    <item name="default" xsi:type="boolean">true</item>
-</item>
+```graphql
+"On: fetched right after the page loads, so the page is sent sooner. Off: sent with the page and visible to search engines"
+deferred: Boolean! @setting(label: "Load after the page", default: true)
+products: [VendorRecommendationsProduct!]! @optional
 ```
 
 ```php
@@ -38,7 +35,8 @@ public function deferred(array $props): bool
 }
 ```
 
-The component needs no code for this: it renders a placeholder while its data prop is `undefined`.
+The component needs no code for this: it renders a placeholder while its data prop (`@optional` in the `.graphqls`) is
+`undefined`.
 
 ```vue
 <div v-if="products === undefined" class="l-skeleton h-64 w-full" aria-busy="true"></div>
@@ -54,15 +52,26 @@ Built-in: Related / Up-sell / Cross-sell Products (`OOCS\LynxCatalog\Provider\Pr
 
 ## The `lazy` convention (fetched when shown)
 
-1. Toggle setting:
+1. Toggle setting and the data, in `etc/components/Specs.graphqls`:
 
-```xml
-<item name="lazy" xsi:type="array">
-    <item name="label" xsi:type="string">Load when shown</item>
-    <item name="description" xsi:type="string">Off: sent with the page and visible to search engines. On: fetched only when the block appears, for example when its tab is opened</item>
-    <item name="type" xsi:type="string">toggle</item>
-    <item name="default" xsi:type="boolean">false</item>
-</item>
+```graphql
+type VendorSpecs @component(
+  code: "vendor_specs"
+  template: "Vendor_Module::Components/Specs"
+  provider: "Vendor\\Module\\Provider\\Specs"
+  label: "Specifications"
+  zones: ["content"]
+  availableOn: ["catalog_product_view*"]
+) {
+  "Off: sent with the page and visible to search engines. On: fetched only when the block appears, for example when its tab is opened"
+  lazy: Boolean! @setting(label: "Load when shown", default: false)
+  rows: [VendorSpecsRow!]! @optional
+}
+
+type VendorSpecsRow {
+  label: String!
+  value: String!
+}
 ```
 
 2. Provider (`OOCS\LynxCatalog\Provider\Product\Specs` is the reference implementation):
@@ -148,9 +157,7 @@ class Specs extends AbstractComponentProvider
 import { onMounted } from 'vue'
 import { router } from '@inertiajs/vue3'
 
-type Row = { label: string; value: string }
-
-const props = withDefaults(defineProps<{ rows?: Row[]; lazy: boolean; _key?: string }>(), {
+const props = withDefaults(defineProps<Lynx.VendorSpecs>(), {
     rows: undefined,
     _key: '',
 })
@@ -181,10 +188,7 @@ onMounted(() => {
 import { useEffect } from 'react'
 import { router } from '@inertiajs/react'
 
-type Row = { label: string; value: string }
-type Props = { rows?: Row[]; lazy?: boolean; _key?: string }
-
-export default function Specs({ rows, lazy, _key = '' }: Props) {
+export default function Specs({ rows, lazy, _key = '' }: Lynx.VendorSpecs) {
     useEffect(() => {
         if (lazy && rows === undefined && _key) {
             router.reload({ only: [_key], preserveUrl: true })
@@ -217,6 +221,6 @@ Test a prop that `resolve()` always sets (`rows`), not a setting. A block that m
 
 ## Limits
 
-- One key per component name: a component placed twice on a page with deferred/optional data shares one result.
+- One key per component code: a component placed twice on a page with deferred/optional data shares one result.
 - Not in SSR HTML; one extra request per group / reload.
 - `labels` of a deferred/optional provider arrive with the data.

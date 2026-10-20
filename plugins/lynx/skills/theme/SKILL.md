@@ -128,7 +128,15 @@ Stores and utils work the same way: `$T/OOCS_LynxTheme/lynx/vue/src/stores/globa
 for every importer. More path examples and the resolution order: [reference/overrides.md](reference/overrides.md).
 
 To show data the provider does not send, add an `after` plugin on the provider's `resolve()` in a module (providers
-are called through the object manager, so plugins run), then read the new prop in the override:
+are created through the object manager, so plugins run), declare the new prop in the module's `.graphqls` (the server
+drops undeclared props), then read it in the override (`Lynx.<TypeName>` has it after `lynx:static:deploy`):
+
+```graphql
+# Vendor_Module etc/components/Simple.graphqls (<sequence> OOCS_LynxCatalog)
+extend type ProductDetailSimple {
+  delivery_note: String! @optional
+}
+```
 
 ```xml
 <!-- Vendor_Module etc/di.xml -->
