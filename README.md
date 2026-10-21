@@ -10,6 +10,7 @@ Skills that teach [Claude Code](https://claude.com/claude-code) how to build on 
 | `component` | Create a PageBuilder component (Vue and React) and register it |
 | `component-settings` | Add or change the settings a component shows in the editor |
 | `provider` | Give a component its data from a PHP provider |
+| `extend-component` | Add markup inside a built-in component (cart line, product card, order page) or run code at its actions (add to cart, update cart, place order) |
 | `page` | Add a storefront page or route, built in PageBuilder or with its own page component |
 | `forms-analytics` | Post forms, show server messages, refresh customer data, track analytics events |
 | `account-tab` | Add a My Account tab |

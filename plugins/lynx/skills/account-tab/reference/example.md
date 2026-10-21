@@ -249,8 +249,7 @@ class InstallAccountLayout implements DataPatchInterface
                 'component' => 'OOCS_LynxCustomer/Components/MyAccount',
                 'label'     => 'My Account',
                 'visible'   => true,
-                // The AccountTabs key to highlight
-                'props'     => ['active_tab' => 'product_questions'],
+                'props'     => [],
                 'slots'     => ['default' => [[
                     'name'      => 'vendor_account_product_questions',
                     'component' => 'Vendor_ProductQuestionsLynx/Components/AccountQuestions',

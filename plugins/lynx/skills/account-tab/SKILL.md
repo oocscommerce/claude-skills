@@ -113,7 +113,8 @@ The `tabs` pool is declared by Lynx in the **frontend** area, so contribute in t
 </type>
 ```
 
-- Item name = tab key the frame highlights (`active_tab`). Built-in keys and orders: `dashboard` 10, `orders` 20,
+- Item name = tab key. The frame highlights the tab whose `route` (or optional `match`) is the longest prefix of the
+  current module/controller/action; `match` is for pages under another path (Orders: `sales/order`). Built-in keys and orders: `dashboard` 10, `orders` 20,
   `addresses` 30, `account_info` 40, `downloads` 50, `newsletter` 60, `wishlist` 70, `reviews` 75,
   `stored_payments` 80. Pick a free value.
 - An entry needs both `label` and `route` to show; `route` goes through `UrlInterface::getUrl()`.
@@ -204,8 +205,7 @@ preview). Full files: [reference/example.md](reference/example.md#component).
 ### 9. Starting layout - data patch
 
 Default design (`Design::DEFAULT_ID`), insert only: a Group holding the My Account frame
-(`OOCS_LynxCustomer/Components/MyAccount`, node name `default_account`) with `props.active_tab` =
-`product_questions`, and your section in the frame's `default` slot. Full patch:
+(`OOCS_LynxCustomer/Components/MyAccount`, node name `default_account`, empty props), and your section in the frame's `default` slot. Full patch:
 [reference/example.md](reference/example.md#starting-layout). Patch mechanics (insert-only, later changes, cache):
 **page** `reference/layout-patch.md`.
 
@@ -216,8 +216,8 @@ Default design (`Design::DEFAULT_ID`), insert only: a Group holding the My Accou
 - The section's `group` must be `account_section`; the frame's slot accepts only that group, one section per frame.
 - Add the page path to `default_account`'s `availableOn` (`extend type Account`, full list), or merchants cannot place
   the frame on your page.
-- `active_tab` is a node prop in the layout, not a setting; pages without their own tab (a detail page under a tab) set
-  the parent tab's key.
+- Never put `active_tab` in the layout: the provider derives it from the route, and a stored prop that is not a setting
+  makes the layout fail `pagebuilder_save_layout`. A detail page under another path gets a `match` on its tab.
 - Personal data page: `lynx_no_cacheable`, `ssr=false`, `encrypt_history=true`, NOINDEX. Never put customer data in
   shared props.
 - Sample rows never touch real data: endpoints `#`, ids that cannot match real rows (negative ids), and the component

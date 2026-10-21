@@ -25,7 +25,8 @@ is reused; only the storefront UI is rebuilt. Worked example: `Vendor_ProductQue
 |---|---|---|
 | Block + `.phtml` placed by layout XML | Component + PHP provider calling the same services; merchants place it in PageBuilder | `component`, `provider` |
 | KO UI component, jQuery widget, `x-magento-init` config | Same UI in Vue and React; the JSON config becomes provider props | `component` |
-| RequireJS mixin / `map` of core JS | Not loaded. Plugin on the Lynx provider's `resolve()`, a component in a slot, or a theme override | `theme` |
+| RequireJS mixin / `map` of core JS | Not loaded. Observer on a Lynx event (add to cart, update cart, place order…), plugin on the Lynx provider's `resolve()`, a component in a slot, or a theme override | `extend-component`, `theme` |
+| Block inserted into a core list by layout XML (per cart item, per product card, order items) | Block in a Lynx container + plugin on the owner's provider | `extend-component` |
 | Plugin/observer on block output | Never runs (block is never created). Hook the data the Lynx provider reads | — |
 | `sections.xml` + `SectionSourceInterface` | Unchanged; read with `customerDataStore`, reload after your own requests | below |
 | AJAX controller | Reused; call with `fetch` or Inertia `router.post` | `forms-analytics` |
