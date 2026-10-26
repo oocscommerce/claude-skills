@@ -22,7 +22,8 @@ declared in `OOCS_LynxPageBuilder`'s `etc/di.xml`.
 | Layout › Header height | `--spacing-header` | `min-h-header`, `h-header` |
 | Shape › Corners — boxes | `--radius-box` | `rounded-box`; `l-card`, `l-alert` |
 | Shape › Corners — buttons | `--radius-button` | `rounded-button`; `l-btn` |
-| Shape › Corners — fields | `--radius-field` (and `--radius-selector`) | `rounded-field`, `rounded-selector`; `l-input`, `l-select`, `l-textarea`, `l-checkbox` |
+| Shape › Corners — fields | `--radius-field` | `rounded-field`; `l-input`, `l-select`, `l-textarea` |
+| Shape › Corners — small controls | `--radius-selector` | `rounded-selector`; `l-checkbox` (radios and `l-badge` stay round) |
 | Shape › Border width | `--border` | `border-(length:--border)`; borders of `l-btn`, `l-input`, `l-select`, `l-textarea`, `l-checkbox`, `l-radio` |
 | Shape › Control height | `--size-field` | height of `l-btn`, `l-input`, `l-select` |
 | Shape › Small control size | `--size-selector` | size of `l-checkbox`, `l-radio` |
@@ -49,7 +50,7 @@ merchant changes the palette.
 
 ## daisyUI controls (prefix `l-`)
 
-Built components only: button, input, select, textarea, checkbox, radio, alert, card, table, skeleton
+Built components only: button, input, select, textarea, checkbox, radio, alert, card, table, skeleton, collapse, badge
 (`@plugin "daisyui" { prefix: l-; include: … }` in `lynx.css`).
 
 | Control | Classes |

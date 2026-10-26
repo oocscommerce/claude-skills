@@ -1,41 +1,5 @@
 # Forms: full examples
 
-## React form (Inertia post)
-
-```tsx
-import { useState, type FormEvent } from 'react'
-import { router } from '@inertiajs/react'
-import { useFormKeyStore } from 'OOCS_LynxTheme/stores/global/formKeyStore'
-
-export default function AskForm({ urls, labels = {} }: Lynx.VendorFaqAskForm) {
-    const formKey = useFormKeyStore()
-    const [question, setQuestion] = useState('')
-    const [busy, setBusy] = useState(false)
-
-    function submit(event: FormEvent<HTMLFormElement>) {
-        event.preventDefault()
-        // Sample preview endpoint: nothing to send
-        if (urls.post === '#' || busy) return
-        // Read now: the reCAPTCHA widget resets once the submit event is over
-        const captcha = (event.currentTarget.elements.namedItem('g-recaptcha-response') as HTMLTextAreaElement | null)?.value
-        setBusy(true)
-        router.post(
-            urls.post,
-            { form_key: formKey.ensure(), question, ...(captcha ? { 'g-recaptcha-response': captcha } : {}) },
-            { forceFormData: true, preserveScroll: true, onFinish: () => setBusy(false) }
-        )
-    }
-
-    return (
-        <form data-recaptcha="vendor_faq_ask" noValidate onSubmit={submit}>
-            <textarea name="question" value={question} onChange={e => setQuestion(e.target.value)} className="l-textarea w-full" />
-            <div data-recaptcha-slot />
-            <button className="l-btn l-btn-primary" disabled={busy}>{labels.submit}</button>
-        </form>
-    )
-}
-```
-
 ## POST controller
 
 ```php
@@ -155,7 +119,7 @@ await fetch(url, {
 ```
 
 `resolve()` returns `''` when the key is not protected (no reCAPTCHA component mounted), `null` while a checkbox still
-needs ticking, the token otherwise. Same import in Vue and React. This import needs `OOCS_LynxReCaptcha` enabled in the
+needs ticking, the token otherwise. This import needs `OOCS_LynxReCaptcha` enabled in the
 build: add it to your module's `<sequence>` and `composer.json` (`oocscommerce/module-lynx-re-captcha`) when you use it.
 
 ## Sections
@@ -210,7 +174,7 @@ public function resolve(array $props): array
 }
 ```
 
-Component, `fetch` flavor (Vue; React identical with the same store API):
+Component, `fetch` flavor:
 
 ```ts
 import { useCustomerDataStore } from 'OOCS_LynxTheme/stores/global/customerDataStore'

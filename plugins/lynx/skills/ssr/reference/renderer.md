@@ -26,24 +26,22 @@ Request body: the Inertia page object plus `storeConfig` (store-scope config the
 
 ## `ssrRender.ts` (module `OOCS_LynxTheme`)
 
-`view/frontend/lynx/vue/src/ssrRender.ts` and `view/frontend/lynx/react/src/ssrRender.ts`, imported as
+`view/frontend/lynx/vue/src/ssrRender.ts`, imported as
 `OOCS_LynxTheme/ssrRender`, export `renderEnvelope(envelope)`:
 
 - builds the Inertia app once per process with the same page map (`virtual:lynx-pages`) and default layout
   (`OOCS_LynxTheme/Layouts/Default`) as the browser entry;
-- per render: `setStoreConfig(storeConfig)`, a fresh Pinia (`createPinia()`) or store registry (`createRegistry()`);
+- per render: `setStoreConfig(storeConfig)`, a fresh Pinia (`createPinia()`);
 - renders one page at a time per process (a promise queue), because the store config is process-wide during a render;
-- React only: `await preloadComponents(pageComponents(page))` before `renderToString`.
 
 It uses neither Node nor browser APIs, so the same code runs in both runtimes.
 
 | Runtime | Entry (`<theme>/lynx/src/`) | Build | Output |
 |---|---|---|---|
-| Node.js | `ssr.ts` (`createServer` of `@inertiajs/vue3/server` / `@inertiajs/react/server`) | `npm run build:ssr` | `dist/ssr/nodejs/server.mjs` (target node22, all deps bundled, source maps) |
-| Cloudflare Worker | `ssr-worker.ts` (`export default { fetch }`) | `npm run build:ssr:worker` | `dist/ssr/worker/worker.mjs` (one file, `ssr.target: 'webworker'`) |
+| Node.js | `ssr.ts` (`createServer` of `@inertiajs/vue3/server`) | `npm run build:ssr` | `dist/ssr/nodejs/server.mjs` (target node22, all deps bundled, source maps) |
+| Cloudflare Worker | `ssr-worker.ts` (re-exports `OOCS_LynxTheme/ssrWorker`, `export default { fetch }`) | `npm run build:ssr:worker` | `dist/ssr/worker/worker.mjs` (one file, `ssr.target: 'webworker'`) |
 
-The Node server also answers `/shutdown`. Workers: `ssr` (Vue theme), `lynx-ssr-react` (React theme) in
-`wrangler.toml`.
+The Node server also answers `/shutdown`. The Worker is named `lynx-ssr` in `wrangler.toml`.
 
 ## When a request is rendered
 
@@ -58,7 +56,7 @@ The Node server also answers `/shutdown`. Workers: `ssr` (Vue theme), `lynx-ssr-
 | Not a PageBuilder preview | plugin `OOCS\LynxPageBuilder\Plugin\DisableSsrInPreview` |
 
 Then `OOCS\LynxInertia\Block\Inertia` skips the renderer when its `ssr` argument is set and false. All settings are
-store-view scope, so a Vue store view and a React store view can point at their own renderers.
+store-view scope, so store views on different themes can point at their own renderers.
 
 ## Plugin on SsrGate
 
@@ -108,7 +106,7 @@ came first.
 
 ## pageComponents
 
-Components Lynx mounts on every page next to the layout (and that the React renderer preloads). Unconditional, global
+Components Lynx mounts on every page next to the layout. Unconditional, global
 `etc/di.xml`:
 
 ```xml
@@ -149,12 +147,11 @@ class AddPageComponent
 }
 ```
 
-## Hydration in the browser entries
+## Hydration in the browser entry
 
-- `main.tsx` (React): if the mount point has `data-server-rendered`, `await preloadComponents(pageComponents(props.initialPage))`
-  then `hydrateRoot`; otherwise `createRoot().render()`. Loaded components resolve directly, not through `lazy`, so the
-  page hydrates in one pass.
-- `main.ts` (Vue): `createSSRApp` when `data-server-rendered`, else `createApp`; `preloadTree(zone)` for every layout
+`renderStorefront()` in `OOCS_LynxTheme/storefront.ts`, which the theme's `main.ts` calls:
+
+- `createSSRApp` when `data-server-rendered`, else `createApp`; `preloadTree(zone)` for every layout
   zone requests all chunks at startup; each node hydrates as its chunk arrives. `DynamicNode` reads `preview` /
   `preview_outlines` through `computed`, so replacing page props does not re-render nodes; only nodes with deferred
   data update, and those were rendered as placeholders on the server.

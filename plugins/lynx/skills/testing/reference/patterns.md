@@ -1,12 +1,9 @@
 # Test patterns
 
-Every example has a Vue and a React form; keep the `it` names identical between the two files.
-
 ## A form posting through fetch
 
 ```ts
-// Vue
-import { mountNode } from '@oocs/lynx-vue/test'
+import { mountNode } from '@oocs/module-lynx-theme/test'
 import { flushPromises } from '@vue/test-utils'
 import WishlistButton from 'Vendor_Module/Components/WishlistButton.vue'
 import { describe, expect, it, vi } from 'vitest'
@@ -31,31 +28,10 @@ describe('WishlistButton', () => {
 })
 ```
 
-```ts
-// React
-import { mountNode } from '@oocs/lynx-react/test'
-import { act, fireEvent, screen } from '@testing-library/react'
-import WishlistButton from 'Vendor_Module/Components/WishlistButton'
-
-it('posts the product with the form key', async () => {
-    // same stubs as above
-    mountNode(WishlistButton, { props })
-
-    await act(async () => {
-        fireEvent.click(screen.getByRole('button', { name: 'Add to Wish List' }))
-    })
-
-    // same assertions
-})
-```
-
-Wrap every React interaction whose effects update state after a promise in `await act(async () => …)`, or wait with
-`await screen.findBy…` / `waitFor`. An update outside `act` logs "not wrapped in act(...)" on stderr.
-
 ## An Inertia visit
 
 ```ts
-import { router } from '@inertiajs/vue3' // React: '@inertiajs/react'
+import { router } from '@inertiajs/vue3'
 
 const visit = vi.spyOn(router, 'visit').mockImplementation(() => {})
 // … click a sort option …
@@ -77,15 +53,10 @@ vi.spyOn(router, 'post').mockImplementation((_url, _data, options) => {
 Read the store the mounted component uses:
 
 ```ts
-// Vue: the helpers make the page's pinia active
+// The helpers make the page's pinia active
 const wrapper = mountNode(MiniCart, { props })
 useCustomerDataStore().sections = { cart: { summary_count: 2 } }
 await nextTick()
-
-// React: pass your own registry to reach the stores
-const registry = createRegistry()
-mountNode(MiniCart, { props, registry })
-act(() => useCustomerDataStore.of(registry).getState().setAuth({ isLoggedIn: true }))
 ```
 
 Store config the store reads goes through `setStoreConfig({ … })` from `OOCS_LynxTheme/utils/storeConfig` when testing
@@ -96,7 +67,7 @@ a store without mounting.
 ```ts
 vi.useFakeTimers()
 const wrapper = mountNode(AnnouncementBar, { props })
-await vi.advanceTimersByTimeAsync(4000) // React: await act(() => vi.advanceTimersByTimeAsync(4000))
+await vi.advanceTimersByTimeAsync(4000)
 ```
 
 Fake timers are reset after each test.
@@ -111,7 +82,7 @@ const mounted: { unmount: () => void }[] = []
 
 async function load() {
     vi.resetModules()
-    const { mountNode } = await import('@oocs/lynx-vue/test')
+    const { mountNode } = await import('@oocs/module-lynx-theme/test')
     const { default: Widget } = await import('Vendor_Module/Components/Widget.vue')
     return { mountNode, Widget }
 }
@@ -125,10 +96,8 @@ Copies loaded this way are not the ones the shared cleanup knows, hence the loca
 
 ## Nodes rendered through DynamicNode
 
-Components resolved from the registry load asynchronously. Vue holds new nodes back up to 300 ms when the page has no
-server markup (always the case in a test): wait with `await vi.waitFor(() => expect(…))`, not `flushPromises`. React:
-`await screen.findBy…`. For a React server render of a layout, call `preloadComponents(pageComponents(page))` from
-`OOCS_LynxTheme/componentRegistry` first, as the SSR entry does.
+Components resolved from the registry load asynchronously. New nodes are held back up to 300 ms when the page has no
+server markup (always the case in a test): wait with `await vi.waitFor(() => expect(…))`, not `flushPromises`.
 
 ## Test-environment gotchas
 
@@ -140,4 +109,4 @@ server markup (always the case in a test): wait with `await vi.waitFor(() => exp
 | Sizes, positions, scrolling are all 0 | No layout engine: do not assert geometry; stub `scrollIntoView`/`scrollBy` if the code calls them. |
 | An iframe or external script "failed to load" on stderr | The test DOM loads no frames or remote scripts: assert the `src` attribute, never the load. |
 | A Vue slot's inputs reset on every render | Props built inline in a render function are new on each render: build the props object once. |
-| Vue prop is `false` while React's is `undefined` | Vue turns a missing Boolean prop into `false`: test the missing case in both editions. |
+| A missing Boolean prop is `false`, not `undefined` | Vue turns a missing Boolean prop into `false`: test the missing case with that in mind. |

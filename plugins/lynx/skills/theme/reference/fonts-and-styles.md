@@ -6,7 +6,7 @@
 @import "tailwindcss";
 /* Shared by every Lynx theme: daisyUI setup (prefix l-), design tokens, frame grid */
 @import "OOCS_LynxTheme/css/lynx.css";
-@source "./**/*.{vue,ts,tsx}";
+@source "./**/*.{vue,ts}";
 /* Module and override sources of this build, written by the Lynx Vite config */
 @import "../dist/sources.css";
 
@@ -38,11 +38,12 @@ scale (`text-lg`+ multiplied by `--heading-scale`), `--color-link`, `--radius-bu
 
 ## Replacing the font (example: Inter)
 
-1. Dependency of the theme workspace, pinned (`$T/lynx/package.json`):
+1. Dependency of the theme, pinned (`$T/lynx/package.json`):
    ```json
    "dependencies": { "@fontsource/inter": "<exact latest version>" }
    ```
-   Then `bin/magento lynx:workspace:setup <themes>` (runs `npm install`). Remove `@fontsource/mulish` if unused.
+   Install it with `npm install @fontsource/inter@<version>` in `$T/lynx/` (writes the line above); commit
+   `package.json`. Remove `@fontsource/mulish` if unused.
 2. In `styles.css`, replace the Mulish `@font-face` blocks. Reference files by package name; the build copies them
    into `web/js/lynx/` under their own names:
    ```css
@@ -81,10 +82,11 @@ Configured once in `OOCS_LynxTheme/css/lynx.css`:
 @plugin "daisyui" {
   themes: false;
   prefix: l-;
-  include: button, input, select, textarea, checkbox, radio, alert, card, table, skeleton;
+  include: button, input, select, textarea, checkbox, radio, alert, card, table, skeleton,
+    collapse, badge;
 }
 ```
 
 Use `l-btn`, `l-input`, `l-select`, `l-textarea`, `l-checkbox`, `l-radio`, `l-alert`, `l-card`, `l-table`,
-`l-skeleton` and their modifiers; any other `l-*` class produces no CSS. `hover:` applies on every device (custom
+`l-skeleton`, `l-collapse`, `l-badge` and their modifiers; any other `l-*` class produces no CSS. `hover:` applies on every device (custom
 variant in `lynx.css`), so hover-driven menus also open on touch devices in desktop view.

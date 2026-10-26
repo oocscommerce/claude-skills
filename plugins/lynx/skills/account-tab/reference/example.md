@@ -94,7 +94,7 @@ class AccountQuestions extends AbstractComponentProvider implements SampleProvid
 
 ## Component
 
-Vue, `view/frontend/lynx/vue/src/Components/AccountQuestions.vue`:
+`view/frontend/lynx/vue/src/Components/AccountQuestions.vue`:
 
 ```vue
 <script setup lang="ts">
@@ -121,35 +121,6 @@ withDefaults(defineProps<Lynx.VendorAccountProductQuestions>(), {
         </ul>
     </div>
 </template>
-```
-
-React, `view/frontend/lynx/react/src/Components/AccountQuestions.tsx`:
-
-```tsx
-import { Link } from '@inertiajs/react'
-
-export default function AccountQuestions({ items = [], labels = {} }: Lynx.VendorAccountProductQuestions) {
-    return (
-        <div className="grid w-full gap-6">
-            <h1 className="text-2xl font-semibold text-base-content">{labels.title}</h1>
-            {!items.length ? (
-                <p className="text-base-content/70">{labels.empty}</p>
-            ) : (
-                <ul className="divide-y divide-base-300">
-                    {items.map(item => (
-                        <li key={item.id} className="grid gap-1 py-4">
-                            <Link href={item.url} className="text-sm text-link">{item.product} · {item.date}</Link>
-                            <p className="font-semibold text-base-content">{item.question}</p>
-                            <p className="text-base-content/70">
-                                {item.answer ? `${labels.answer}: ${item.answer}` : labels.waiting}
-                            </p>
-                        </li>
-                    ))}
-                </ul>
-            )}
-        </div>
-    )
-}
 ```
 
 The section sits inside the frame: root `w-full`, no outer spacing. A section with actions (remove, post) returns

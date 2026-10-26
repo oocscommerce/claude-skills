@@ -1,28 +1,28 @@
 ---
 name: shipping-method
-description: Adds a shipping method renderer to the Lynx one-page checkout (OOCS_LynxCheckout) - a Vue and React component shown under a carrier's rate in the Shipping Method step when the shopper picks it (store or locker picker, delivery date, time slot), registered in the `shippingMethodRenderers` pool by carrier code, fed by a PHP config class, exposing `validate` / `data` / `summary`, with its data written to the quote by an idempotent `beforeSave` plugin on the ShippingMethod step provider. Use when a developer says "shipping renderer for Lynx checkout", "my carrier needs a pickup point / delivery date in Lynx", "make my store pickup / locker module work with Lynx", "save extra shipping data from the Lynx checkout". Not for a question every shopper answers (use checkout-step) or payment input (use payment-method). Use with the basics skill.
+description: Adds a shipping method renderer to the Lynx one-page checkout (OOCS_LynxCheckout) - a Vue component shown under a carrier's rate in the Shipping Method step when the shopper picks it (store or locker picker, delivery date, time slot), registered in the `shippingMethodRenderers` pool by carrier code, fed by a PHP config class, exposing `validate` / `data` / `summary`, with its data written to the quote by an idempotent `beforeSave` plugin on the ShippingMethod step provider. Use when a developer says "shipping renderer for Lynx checkout", "my carrier needs a pickup point / delivery date in Lynx", "make my store pickup / locker module work with Lynx", "save extra shipping data from the Lynx checkout". Not for a question every shopper answers (use checkout-step) or payment input (use payment-method). Use with the basics skill.
 ---
 
 # Lynx shipping method renderer
 
-Produces the Lynx side of a carrier that needs input from the shopper: a renderer (Vue + React) under the carrier's
+Produces the Lynx side of a carrier that needs input from the shopper: a renderer (Vue component) under the carrier's
 rate, its pool entry, a config class, and a `beforeSave` plugin that writes the renderer's data to the quote. The
 carrier itself (rates, `config.xml`, `system.xml`) stays a standard Magento carrier; every carrier already works in
 Lynx without a renderer.
 
 ## Before you start
 
-- Read **basics** (module layout, `view/frontend/lynx/<vue|react>/src`, aliases, build). The Lynx reference
+- Read **basics** (module layout, `view/frontend/lynx/vue/src`, aliases, build). The Lynx reference
   implementation is `OOCS_LynxMSI` (in
   `vendor/oocscommerce/module-lynx-msi`): `Model\PickupLocations` (config), `Plugin\SavePickupLocation` (beforeSave),
-  `Components/StorePickup.{vue,tsx}`.
+  `Components/StorePickup.vue`.
 - Find the **carrier code** (the first segment of the rate code: rate `instore_pickup` = carrier `instore`, method
   `pickup`). The pool is keyed by carrier code, so one renderer serves every method of the carrier.
 - Decide where the data lives on the quote (a quote / quote address column via `db_schema.xml`, an extension
   attribute, or the shipping address itself as In-Store Pickup does) and how it reaches the order (fieldset
   `sales_convert_quote`, observer). That part is plain Magento.
 - Code to read when in doubt: `OOCS\LynxCheckout\Provider\Checkout\Step\ShippingMethod` (`save()`, `rendererOf()`)
-  and `OOCS_LynxCheckout/Components/Checkout/Step/ShippingMethod.{vue,tsx}`.
+  and `OOCS_LynxCheckout/Components/Checkout/Step/ShippingMethod.vue`.
 
 ## Steps
 
@@ -55,7 +55,7 @@ Lynx without a renderer.
 
 | Key | Meaning |
 |---|---|
-| `component` | `<Module>/<path under src>` without extension, **slash** after the module name. Resolves to `.vue` on a Vue theme, `.tsx` on a React theme |
+| `component` | `<Module>/<path under src>` without extension, **slash** after the module name. Resolves to the `.vue` file |
 | `config` | Object implementing `OOCS\LynxCheckout\Api\ShippingMethodRendererConfigInterface`; `getConfig()` becomes the `config` prop. A wrong class throws a `LogicException` |
 
 A renderer is attached only to rates the carrier actually quoted (`available`); error rates get none.
@@ -110,12 +110,12 @@ class DeliveryDate implements ShippingMethodRendererConfigInterface
 
 ### 4. The renderer
 
-`view/frontend/lynx/vue/src/Components/DeliveryDate.vue` and `view/frontend/lynx/react/src/Components/DeliveryDate.tsx`.
+`view/frontend/lynx/vue/src/Components/DeliveryDate.vue`.
 
 **Props in:** `rate` (`carrier_code`, `method_code`, `carrier_title`, `method_title`, `amount`, `available`,
 `error_message`) and `config` (what `getConfig()` returned).
 
-**Exposed out** (Vue `defineExpose`, React `useImperativeHandle(ref, ...)` on the `ref` prop). All optional:
+**Exposed out** (`defineExpose`). All optional:
 
 | Member | Type | Meaning |
 |---|---|---|
@@ -123,7 +123,7 @@ class DeliveryDate implements ShippingMethodRendererConfigInterface
 | `data` | `() => Record<string, FormDataConvertible>` | Merged into the step's `data()`, posted with every step request |
 | `summary` | `string` | One line under the chosen method in the collapsed step (the store name, the date) |
 
-Mount lifecycle (from `Step/ShippingMethod.{vue,tsx}`):
+Mount lifecycle (from `Step/ShippingMethod.vue`):
 
 - Mounted only while its rate is the picked one; switching rates unmounts it, and it unmounts when the step collapses.
 - On **Continue** the step calls `validate()`, then snapshots `data()` and `summary`, tracks `add_shipping_info`, and
@@ -131,7 +131,7 @@ Mount lifecycle (from `Step/ShippingMethod.{vue,tsx}`):
   reaching the server on later step requests.
 - Because it remounts, initialise state from `config` (the value on the quote), never assume it persists.
 
-Vue (the React twin is in [reference/delivery-date-example.md](reference/delivery-date-example.md)):
+Renderer:
 
 ```vue
 <script setup lang="ts">
@@ -176,8 +176,8 @@ defineExpose({
 </template>
 ```
 
-In Vue a derived summary is exposed as a `computed` (`summary: computed(() => selected.value?.name ?? '')` in
-StorePickup.vue). In React put the plain value in the handle and its source in the deps.
+A derived summary is exposed as a `computed` (`summary: computed(() => selected.value?.name ?? '')` in
+StorePickup.vue).
 
 ### 5. Save the data - `Plugin/SaveDeliveryDate.php`
 
@@ -250,7 +250,7 @@ class SaveDeliveryDate
 
 ```bash
 bin/magento module:enable Vendor_ShippingFoo && bin/magento setup:upgrade
-bin/magento lynx:workspace:setup OOCS_LynxVue OOCS_LynxReact   # new module
+bin/magento lynx:theme:setup OOCS_LynxVue                      # new module
 bin/magento lynx:static:deploy
 bin/magento lynx:compile                                       # if the store uses compiled config
 bin/magento cache:clean
@@ -267,16 +267,15 @@ bin/magento cache:clean
 - **Idempotent and cheap plugin**: it runs on every later step fetch. Compare with the quote and return early.
 - **One input per carrier belongs here; input every shopper gives belongs in a checkout step** (**checkout-step**).
 - **No UI text in the component**: labels from `config.labels`; reuse Magento phrases.
-- **Ship `.vue` and `.tsx`** at the same relative path. Styling: `checkout.inputClass(invalid)`, tokens and `l-`
-  classes only, nothing below `text-sm`, inline errors with `data-checkout-error`.
+- **Styling**: `checkout.inputClass(invalid)`, tokens and `l-` classes only, nothing below `text-sm`, inline errors with `data-checkout-error`.
 - **External scripts / map SDKs**: `etc/csp_whitelist.xml` + `checkout.cspNonce`; load your own code with `import`
   (the checkout pins chunk hashes).
-- **Custom address attributes** need no renderer: the merchant adds them to the Address step's **Address Fields**
-  setting (attribute in form `customer_address_edit`); they are sent as `custom_attributes`.
+- **Custom address attributes** need no renderer: an attribute visible in form `customer_address_edit` shows on the
+  address form, placed in Stores > Attributes > Customer Address Fields; it is sent as `custom_attributes`.
 
 ## Check
 
-- [ ] Picking the rate shows the renderer (Vue **and** React theme); another rate hides it; its chunk loads lazily.
+- [ ] Picking the rate shows the renderer; another rate hides it; its chunk loads lazily.
 - [ ] Continue without input: renderer error, shopper stays.
 - [ ] Continue with input: collapsed step shows `summary`; the value is on the quote (DB) after the Payment step loads.
 - [ ] Edit Shipping Method, Continue again without changes: no extra write (plugin returns early).
@@ -287,7 +286,7 @@ bin/magento cache:clean
 
 ## Reference
 
-- [reference/delivery-date-example.md](reference/delivery-date-example.md) - full example (React renderer, storage,
+- [reference/delivery-date-example.md](reference/delivery-date-example.md) - full example (storage,
   order copy) and how In-Store Pickup uses each piece.
 - **checkout-step** - the step flow, `Process` controller and `CheckoutStepInterface`.
 - https://docs.oocscommerce.com/lynx/developer/shipping-methods

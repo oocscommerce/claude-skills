@@ -1,23 +1,22 @@
 ---
 name: component
-description: Creates and registers a Lynx PageBuilder component in a third-party Magento module - the `etc/components/<Template>.graphqls` declaration (`@component` code, template, provider, group, icon, zones, availableOn; settings, slots, provider data fields, generated `Lynx.*` types) plus the Vue `.vue` and React `.tsx` files the Lynx themes render. Use when a developer says "add a Lynx component", "new PageBuilder block", "make my module's widget available in the Lynx editor", "add a slot to a Lynx component", "let my component into the Product Detail slot", "component not showing in the picker", or "headless/tracker component for Backstage". Use with the basics skill (module structure, styling, CLI); use the component-settings skill for the settings panel and the provider skill for the PHP data behind the props.
+description: Creates and registers a Lynx PageBuilder component in a third-party Magento module - the `etc/components/<Template>.graphqls` declaration (`@component` code, template, provider, group, icon, zones, availableOn; settings, slots, provider data fields, generated `Lynx.*` types) plus the `.vue` file the Lynx theme renders. Use when a developer says "add a Lynx component", "new PageBuilder block", "make my module's widget available in the Lynx editor", "add a slot to a Lynx component", "let my component into the Product Detail slot", "component not showing in the picker", or "headless/tracker component for Backstage". Use with the basics skill (module structure, styling, CLI); use the component-settings skill for the settings panel and the provider skill for the PHP data behind the props.
 ---
 # Lynx PageBuilder component
 
 Produces a component the merchant can add in the Lynx PageBuilder editor: one `type … @component(…)` in
-`etc/components/<Template>.graphqls` and one file per theme framework
-(`view/frontend/lynx/vue/src/...vue`, `view/frontend/lynx/react/src/...tsx`). A component from a third-party module
+`etc/components/<Template>.graphqls` and one `.vue` file
+(`view/frontend/lynx/vue/src/...vue`). A component from a third-party module
 works exactly like a built-in one.
 
 ## Before you start
 
 - Read **basics** for the module skeleton, `<sequence>`/composer requirements, styling rules and CLI.
-- Find which Lynx themes the store builds (`OOCS_LynxVue`, `OOCS_LynxReact`, or a child theme). Ship both files unless
-  the developer targets one framework; a theme with no file for a component renders nothing for its nodes.
+- Find which Lynx themes the store builds (`OOCS_LynxVue` or a child theme).
 - Look for a built-in component close to what you need and imitate it. Declarations live in `etc/components/*.graphqls`
   of `OOCS_LynxThemeComponent` (Heading, Image, Banner, Group, LinkList…) and `OOCS_LynxCatalog` (product blocks),
   under `vendor/oocscommerce/module-lynx-*/`. Files are in each
-  module's `view/frontend/lynx/<vue|react>/src/Components/`.
+  module's `view/frontend/lynx/vue/src/Components/`.
 - Decide: does it need server data, translated text, `Localized*`/`Image`/`Url` settings? Then it needs a provider
   (skill **provider**). Does it hold children? Then it declares slots.
 
@@ -35,7 +34,7 @@ change (step 6). Mirror them in `composer.json` (`oocscommerce/module-lynx-compo
 One `.graphqls` file per template, named after it, in GraphQL SDL syntax (Lynx has no GraphQL API; the extension only
 lets IDEs highlight it, e.g. VS Code `"files.associations": { "*.graphqls": "graphql" }`). Every `.graphqls` of the enabled
 modules is merged in `<sequence>` order; shared directives and scalars are in
-`OOCS_LynxComponent/etc/components/directives.graphqls`, shared enums (`Align`, `Justify`…) in `enums.graphqls` beside it.
+`OOCS_LynxComponent/etc/components/base.graphqls`, shared enums (`Align`, `Justify`…) in `enums.graphqls` beside it.
 
 ```graphql
 enum VendorHighlightTone {
@@ -67,7 +66,7 @@ Key points (full reference in `reference/registry-keys.md`):
   never rename it.
 - **Type and enum names are global** across all modules (a duplicate is an error): prefix them too (`VendorHighlight`).
 - **`template`** is `Vendor_Module::<path under src without extension>`. The registry turns it into the key
-  `Vendor_Module/Components/Highlight`, which each theme resolves to its `.vue` or `.tsx`. The key is also saved on
+  `Vendor_Module/Components/Highlight`, which each theme resolves to its `.vue`. The key is also saved on
   every node, so moving the file later breaks existing nodes.
 - **`provider`**: the class name as a string, backslashes escaped, no `\Proxy` (the registry creates a provider only
   when a node needs it). See skill **provider**.
@@ -114,47 +113,28 @@ const TONE: Record<string, string> = {
 </template>
 ```
 
-### 4. The React file - `view/frontend/lynx/react/src/Components/Highlight.tsx`
-
-```tsx
-// Another module can extend the enum: map with a fallback
-const TONE: Record<string, string> = {
-    soft: 'bg-base-200',
-    outline: 'border-(length:--border) border-base-300',
-}
-
-export default function Highlight({ title, tone, slots }: Lynx.VendorHighlight & { slots?: NodeSlots }) {
-    return (
-        <div className={`w-full rounded-box p-6 ${TONE[tone] ?? TONE.soft}`}>
-            {title && <h2 className="text-xl font-semibold text-base-content">{title}</h2>}
-            {slots?.actions && <div className="mt-4 flex flex-wrap gap-3">{slots.actions}</div>}
-        </div>
-    )
-}
-```
-
 `Lynx`, `NodeSlots` and `LayoutItem` are global types; use them without importing. A template shared by several codes
 lists them all: `Lynx.VendorA | Lynx.VendorB` (fields only one of them declares become optional).
 
-Props contract (both frameworks):
+Props contract:
 
-| What | Vue | React |
-|---|---|---|
-| Settings | props named like the setting fields, defaults already filled | same |
-| Provider data | `!` = never null, no `!` = may be `null`, `@optional` = may be missing (`?`) | same |
-| Default slot | `<slot />` | `slots?.default` |
-| Named slot | `<slot name="actions" />` | `slots?.actions` (already rendered) |
-| Empty slot test | `$slots.actions` | `slots?.actions` (an empty slot is not passed) |
-| `align` | never a prop: becomes `data-align` on your root element | never a prop: DynamicNode wraps the node |
-| Deferred/optional node | `_key` prop, data props `undefined` until fetched | same |
+| What | How |
+|---|---|
+| Settings | props named like the setting fields, defaults already filled |
+| Provider data | `!` = never null, no `!` = may be `null`, `@optional` = may be missing (`?`) |
+| Default slot | `<slot />` |
+| Named slot | `<slot name="actions" />` |
+| Empty slot test | `$slots.actions` |
+| `align` | never a prop: becomes `data-align` on your root element |
+| Deferred/optional node | `_key` prop, data props `undefined` until fetched |
 
-### 5. Editor preview behaviour
+### 4. Editor preview behaviour
 
 The editor previews the storefront in an iframe; there `usePage().props.preview` is `true`. Use it only to keep a
 component visible or inert while the merchant edits, never for storefront logic:
 
 ```ts
-import { usePage } from '@inertiajs/vue3'      // React: '@inertiajs/react'
+import { usePage } from '@inertiajs/vue3'
 // Show the link wherever it is placed, so the merchant can find it
 const preview = !!usePage().props.preview
 ```
@@ -164,7 +144,7 @@ Built-in examples: `ProductAlert`, `StockAlertUnsubscribe` (`OOCS_LynxProductAle
 In the preview, DynamicNode adds `data-lynx-id` / `data-lynx-label` to your root (Vue fallthrough) so the editor can
 find and highlight the node; this is why one root element matters.
 
-### 6. Optional: change a built-in component
+### 5. Optional: change a built-in component
 
 `extend type` in your own `etc/components/*.graphqls`, with the declaring module in your `<sequence>` (the later module
 wins). A field you redeclare needs `@replace`, so write the whole slot again with your group added:
@@ -181,11 +161,11 @@ Each product type has its own type (`ProductDetailSimple`, `ProductDetailConfigu
 built-in component also needs a theme override of that component's file that renders the slot; other changes
 (settings, provider data, registration args, removing the component) are in `reference/registry-keys.md`.
 
-### 7. Headless component (tracker, script)
+### 6. Headless component (tracker, script)
 
-Draws nothing, goes in the `backstage` zone (declare `zones` → `backstage`). Vue: no `<template>` at all, and
-`defineOptions({ render: () => null })` (an empty `<template>` breaks hydration of the nodes after it). React: return
-`null`. Run the script in `onMounted` / `useEffect`. Example: `ReCaptcha.vue` in `OOCS_LynxReCaptcha`.
+Draws nothing, goes in the `backstage` zone (declare `zones` → `backstage`). No `<template>` at all, and
+`defineOptions({ render: () => null })` (an empty `<template>` breaks hydration of the nodes after it). Run the script
+in `onMounted`. Example: `ReCaptcha.vue` in `OOCS_LynxReCaptcha`.
 To show a placeholder in the editor instead, render one root `<div>` only while in the preview, as `GoogleTag.vue`
 (`OOCS_LynxGoogleTag`) does.
 
@@ -196,7 +176,7 @@ To show a placeholder in the editor instead, render one root `<div>` only while 
   `Lynx props: <code>.<path> is not declared in etc/components/*.graphqls, dropped.` to `system.log`.
 - **Do not hand-write props types.** Use `Lynx.<TypeName>` (the component's `type` name in the `.graphqls`) and the data types' `Lynx.<TypeName>`; change the `.graphqls`, not the
   component, when a prop changes.
-- **One root element** (Vue and React). The preview markers and `data-align` go on the root; with several roots (a
+- **One root element**. The preview markers and `data-align` go on the root; with several roots (a
   `div` next to a `Teleport`) wrap everything in one `<div>`.
 - **Settings get no default in the component**: the server fills in the `.graphqls` `default`. `withDefaults` /
   destructuring defaults are only for provider data (`labels`, lists, `urls`).
@@ -208,7 +188,7 @@ To show a placeholder in the editor instead, render one root `<div>` only while 
   fallback, even though the generated type is a string union.
 - **No visible text in the component.** Button labels, placeholders, `aria-label`, messages come from the provider in a
   `labels` prop translated with `__()`; merchant-typed text comes through settings. Reuse Magento's own phrases.
-- **Self-contained**: types, class maps and logic inside the `.vue`/`.tsx`; no shared helper/types files per folder.
+- **Self-contained**: types, class maps and logic inside the `.vue`; no shared helper/types files per folder.
 - **Styling**: theme tokens (`bg-base-200`, `text-base-content`, `rounded-box`, `border-(length:--border)`,
   `max-w-site`…) and `l-` daisyUI controls (`l-btn l-btn-primary`, `l-input`, `l-skeleton`…). No hardcoded colors,
   radius, shadows, borders or widths; font sizes from the theme scale, never below `text-sm`. Write class names in
@@ -217,7 +197,7 @@ To show a placeholder in the editor instead, render one root `<div>` only while 
   merchant wraps them in a Group.
 - **Name alignment settings other than `align`** (`text_align`, `justify`, `vertical_align`): `align` is taken by
   DynamicNode.
-- **SSR-safe**: no `window`/`document` in setup or render; use `onMounted` / `useEffect`.
+- **SSR-safe**: no `window`/`document` in setup or render; use `onMounted`.
 - **Slot keys are permanent**: children are stored under them; renaming empties the slot on every saved page.
 - **Zones, `availableOn`, slot `allow` and `max` are add-time rules** of the editor (the MCP
   `pagebuilder_save_layout` tool also checks zones, pages, groups, settings and slots). A node already in a layout
@@ -231,17 +211,17 @@ To show a placeholder in the editor instead, render one root `<div>` only while 
 
 ## Check
 
-1. First time: `bin/magento setup:upgrade`, then `bin/magento lynx:workspace:setup <themes>` (e.g.
-   `OOCS_LynxVue OOCS_LynxReact`) so the module enters the build.
+1. First time: `bin/magento setup:upgrade`, then `bin/magento lynx:theme:setup <themes>` (e.g.
+   `OOCS_LynxVue`) so the module enters the build.
 2. After a `.graphqls` change: `bin/magento cache:clean lynx_component`, plus `bin/magento lynx:compile components` when
    the site runs compiled. `bin/magento lynx:static:deploy` rewrites `props.d.ts` and builds new/changed
-   `.vue`/`.tsx` (a plain `npm run build` does not regenerate the types). A child theme with its own
+   `.vue` (a plain `npm run build` does not regenerate the types). A child theme with its own
    `vite.config.js` keeps the `globalTypeFiles` line of the parent's.
 3. Editor: the component appears in the picker under its group, only on allowed pages and zones; icon and description
    show; slots appear in the outline; the slot's `allow` filters the picker opened from the slot.
 4. Preview: selecting the node highlights it (one root); changing Button color / Corners / Border width in design
    settings restyles it; `align` Wide/Full works inside a constrained Group.
-5. Storefront on **each** Lynx theme you ship: renders, hydrates without console warnings, works with SSR on if the
+5. Storefront on each Lynx theme the store builds: renders, hydrates without console warnings, works with SSR on if the
    store uses it.
 6. Disable the module on a copy: pages still render, the log shows the "not registered; it is skipped" line.
 

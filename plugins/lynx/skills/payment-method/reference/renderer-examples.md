@@ -1,12 +1,12 @@
 # Payment renderer examples
 
 All examples use `Vendor_PaymentFoo` / method `vendor_foo` (online) and `Vendor_PaymentInvoice` / `vendor_invoice`
-(offline). Paths: `view/frontend/lynx/vue/src/...vue` and `view/frontend/lynx/react/src/...tsx`, same relative path.
+(offline). Paths: `view/frontend/lynx/vue/src/...vue`.
 
 ## Form shape: card fields from a gateway SDK
 
 The renderer mounts the field on mount, reports `loaded`, tokenizes in `preparePayment()`. `@vendor/foo-js` stands for
-the gateway's npm SDK, declared in the module's own `view/frontend/lynx/<vue|react>/package.json`:
+the gateway's npm SDK, declared in the module's own `view/frontend/lynx/vue/package.json`:
 
 ```json
 {
@@ -17,9 +17,10 @@ the gateway's npm SDK, declared in the module's own `view/frontend/lynx/<vue|rea
 }
 ```
 
-Add `.gitignore` with `node_modules/` next to it; commit `package.json`. Re-run `bin/magento lynx:workspace:setup`.
+Commit `package.json`; never run `npm install` there. Re-run `bin/magento lynx:theme:setup <themes>`: it installs the
+SDK into each theme's `node_modules`.
 
-### Vue - `Components/Foo.vue`
+### `Components/Foo.vue`
 
 ```vue
 <script setup lang="ts">
@@ -68,73 +69,7 @@ defineExpose({
 </template>
 ```
 
-### React - `Components/Foo.tsx`
-
-```tsx
-import { useEffect, useImperativeHandle, useRef, useState, type Ref } from 'react'
-import { loadFoo, type FooCard } from '@vendor/foo-js'
-import { useCheckoutStore } from 'OOCS_LynxCheckout/stores/checkoutStore'
-
-type Handle = {
-    loaded: boolean
-    preparePayment: () => Promise<Record<string, unknown>>
-}
-
-type Props = {
-    config: { publishableKey: string; labels?: Record<string, string> }
-    ref?: Ref<Handle>
-}
-
-export default function Foo({ config, ref }: Props) {
-    const checkout = useCheckoutStore()
-    const container = useRef<HTMLDivElement>(null)
-    const card = useRef<FooCard | null>(null)
-    const [loaded, setLoaded] = useState(false)
-    const [error, setError] = useState('')
-
-    useEffect(() => {
-        void loadFoo(config.publishableKey).then(foo => {
-            card.current = foo.mountCard(container.current!)
-            setLoaded(true)
-        })
-    }, [config.publishableKey])
-
-    useImperativeHandle(
-        ref,
-        () => ({
-            loaded,
-            async preparePayment() {
-                const result = await card.current!.tokenize()
-                if (!result.token) {
-                    const message = result.message ?? config.labels?.required ?? ''
-                    setError(message)
-                    throw new Error(message)
-                }
-                setError('')
-                return { foo_token: result.token }
-            },
-        }),
-        // Rebuilt when loaded changes, so the checkout sees the new value
-        [loaded, config.labels?.required]
-    )
-
-    return (
-        <div>
-            <label className="block text-sm text-base-content mb-1.5">{config.labels?.cardNumber}</label>
-            <div ref={container} className={checkout.inputClass(!!error)}></div>
-            {error && (
-                <p data-checkout-error className="mt-1 text-sm text-error">
-                    {error}
-                </p>
-            )}
-        </div>
-    )
-}
-```
-
 ## Button shape: a wallet that places the order itself
-
-### Vue
 
 ```vue
 <script setup lang="ts">
@@ -161,44 +96,10 @@ async function onWalletClick() {
 </template>
 ```
 
-### React
-
-```tsx
-import { useImperativeHandle, type Ref } from 'react'
-
-type Props = {
-    config: { labels?: Record<string, string> }
-    placeOrder: (additionalData?: Record<string, unknown>) => Promise<boolean>
-    validate: () => boolean
-    ref?: Ref<{ ownsAction: boolean }>
-}
-
-export default function FooWallet({ config, placeOrder, validate, ref }: Props) {
-    useImperativeHandle(ref, () => ({ ownsAction: true }), [])
-
-    async function onWalletClick() {
-        if (!validate()) return
-        const { token } = await window.FooWallet.open()
-        await placeOrder({ foo_token: token })
-    }
-
-    return (
-        <button type="button" className="l-btn l-btn-primary w-full" onClick={onWalletClick}>
-            {config.labels?.payWithFoo}
-        </button>
-    )
-}
-```
-
-When the wallet's own button is drawn by an SDK (PayPal, Google Pay), render a skeleton (`l-skeleton`) until it is
-ready and expose `loaded` as in the form shape. A wallet SDK that injects inline scripts needs `checkout.cspNonce`.
-
 ## Redirect shape: order first, then the hosted page
 
 `config.paymentUrl` is your module's frontend controller (built with `UrlInterface::getUrl()` in `getConfig()`) that
 answers `{ "url": "..." }` signed for the order.
-
-### Vue
 
 ```vue
 <script setup lang="ts">
@@ -222,41 +123,6 @@ defineExpose({
     <p class="text-sm text-base-content/80">{{ config.labels?.redirect }}</p>
 </template>
 ```
-
-### React
-
-```tsx
-import { useImperativeHandle, type Ref } from 'react'
-
-type Props = {
-    config: { paymentUrl: string; labels?: Record<string, string> }
-    ref?: Ref<{ afterPlaceOrder: (orderId: string) => Promise<string | null> }>
-}
-
-export default function FooRedirect({ config, ref }: Props) {
-    useImperativeHandle(
-        ref,
-        () => ({
-            async afterPlaceOrder(orderId: string) {
-                const response = await fetch(`${config.paymentUrl}?order_id=${encodeURIComponent(orderId)}`, {
-                    credentials: 'same-origin',
-                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
-                })
-                const { url } = await response.json()
-                return url || null
-            },
-        }),
-        [config.paymentUrl]
-    )
-
-    return <p className="text-sm text-base-content/80">{config.labels?.redirect}</p>
-}
-```
-
-The URL controller must check that the order belongs to the current session (e.g. the checkout session's last real
-order id) before signing. The return controller verifies the gateway signature, restores the quote on cancel and
-redirects to `checkout/onepage/success` or `checkout/onepage/failure`. Only add a Lynx route if the return page itself
-must render in the Lynx theme (see **basics** / Inertia pages).
 
 ## Offline method with its own field
 
@@ -308,7 +174,7 @@ class InvoiceConfig implements PaymentMethodRendererConfigInterface
 </type>
 ```
 
-### Vue - `Components/Checkout/Payment/Invoice.vue`
+### `Components/Checkout/Payment/Invoice.vue`
 
 ```vue
 <script setup lang="ts">
@@ -348,64 +214,6 @@ defineExpose({
         <p v-if="error" data-checkout-error class="mt-1 text-sm text-error">{{ error }}</p>
     </div>
 </template>
-```
-
-### React - `Components/Checkout/Payment/Invoice.tsx`
-
-```tsx
-import { useImperativeHandle, useRef, useState, type Ref } from 'react'
-import { useCheckoutStore } from 'OOCS_LynxCheckout/stores/checkoutStore'
-
-type Props = {
-    config: { labels?: Partial<Record<'reference' | 'required', string>> }
-    ref?: Ref<{ preparePayment: () => Promise<Record<string, unknown>> }>
-}
-
-export default function Invoice({ config, ref }: Props) {
-    const checkout = useCheckoutStore()
-    const [reference, setReference] = useState('')
-    const [error, setError] = useState('')
-    // preparePayment runs after the render that produced it
-    const value = useRef(reference)
-    value.current = reference
-
-    useImperativeHandle(
-        ref,
-        () => ({
-            preparePayment(): Promise<Record<string, unknown>> {
-                const current = value.current.trim()
-                const message = current ? '' : (config.labels?.required ?? '')
-                setError(message)
-                return message ? Promise.reject(new Error(message)) : Promise.resolve({ invoice_reference: current })
-            },
-        }),
-        [config.labels?.required]
-    )
-
-    return (
-        <div>
-            <label htmlFor="checkout-invoice-reference" className="block text-sm text-base-content mb-1.5">
-                {config.labels?.reference} <span className="text-error">*</span>
-            </label>
-            <input
-                id="checkout-invoice-reference"
-                value={reference}
-                type="text"
-                autoComplete="off"
-                className={checkout.inputClass(!!error)}
-                onChange={e => {
-                    setReference(e.target.value)
-                    setError('')
-                }}
-            />
-            {error && (
-                <p data-checkout-error className="mt-1 text-sm text-error">
-                    {error}
-                </p>
-            )}
-        </div>
-    )
-}
 ```
 
 ### Keep the value: `etc/events.xml` + observer (plain Magento, works for Luma too)

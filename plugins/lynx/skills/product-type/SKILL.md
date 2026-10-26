@@ -21,7 +21,7 @@ layout. Output is a compatibility module (here `Vendor_GiftCardLynx` for a type 
   - `etc/components/Page.graphqls` (type `Product`, code `default_product`, slots `media` / `detail`), `Media.graphqls`
     (`ProductMedia`, slot `gallery_after`), `Simple.graphqls` (`ProductDetailSimple`: slots, settings, data);
     `etc/di.xml`: `pages` of `PreviewPagebuilder`
-  - `view/frontend/lynx/{vue,react}/src/Components/Product/Simple.*`, `Page.*`, `Media.*`, `stores/productStore.ts`
+  - `view/frontend/lynx/vue/src/Components/Product/Simple.vue`, `Page.vue`, `Media.vue`, `stores/productStore.ts`
   - `Setup/Patch/Data/InstallCatalogLayouts.php` (`productPage()`)
 
 ### What happens to an unknown type today
@@ -98,7 +98,7 @@ same way (its list in `Simple.graphqls`: `catalog_product_view_type_simple`, `ca
 | `base` | Optional `{ price, original_price, is_on_sale }` replacing the product's own prices (the picked configurable child) |
 | `images` | Optional `GalleryImage[]` (exported by the store) that Product Media shows before the product's own |
 
-Store API (Vue pinia and React hook have the same names): `contribute(productId, key, contribution)`,
+Store API (Pinia): `contribute(productId, key, contribution)`,
 `forget(productId, key)`, `requestValidation(productId)`, `validationTicks`, `collect(productId)` (merged). Contribute on every change
 (`immediate`), `forget` on unmount and when `product_id` changes (Inertia can keep the block mounted), focus the first
 empty field when the tick for the product changes.
@@ -132,7 +132,7 @@ type VendorGiftCardAmount {
 
 Provider extends `OOCS\LynxComponent\Model\AbstractComponentProvider`, reads `current_product` from
 `Magento\Framework\Registry`, returns `$props` unchanged when there is none or the type differs, and sends
-`product_id` (keys the contribution), the type's data and translated `labels`. Full provider, `.vue` and `.tsx`:
+`product_id` (keys the contribution), the type's data and translated `labels`. Full provider and `.vue`:
 [reference/giftcard-example.md](reference/giftcard-example.md#option-b).
 
 **c. Its own Product Detail** (no qty stepper, price range, preview…). Provider extends
@@ -172,7 +172,9 @@ class GiftCard extends AbstractDetail
 
 `AbstractDetail::resolve()` already handles no `current_product`, tags the page (`cat_p`, `cat_p_<id>`) and always
 sends `product_id`, `title`, `sku`, `price`, `is_salable`, `rating`, `urls.add_to_cart`, `sections.add_to_cart` and
-the base `labels`. Only when the node's setting is on and Magento allows it: `urls.add_to_wishlist` (`show_wishlist`
+the base `labels`. While the catalog shows prices both with and without tax (`TaxHelper::displayBothPrices()`, Price
+Display Settings), it adds `price_excl_tax`, and each tier row of `addQuantityProps()` its own `price_excl_tax`; the
+component shows it under the price with `labels.exclTax`. Only when the node's setting is on and Magento allows it: `urls.add_to_wishlist` (`show_wishlist`
 `yes` and the Wish List enabled) and `urls.add_to_compare` (`show_compare` `yes` and the product comparable), each
 with its section and labels. Helpers a type calls from `addTypeProps()` when it shows them: `addQuantityProps()`
 (`tier_prices` and the quantity labels) and `addRegularPrice()` (`original_price`, `is_on_sale`). It sends no
@@ -181,8 +183,8 @@ Declare it as `vendor_product_detail_giftcard` in group `product_page`, `availab
 slots (`price_after`, `product_info_additional` named `product.info.additional` with `max: 1`, `info_after`), the
 `show_wishlist` / `show_compare` settings and the shared data fields from `ProductDetailSimple` with `@inherit`, minus
 what the type does not send, plus `amounts`. Component:
-copy `Components/Product/Simple.vue` and `Simple.tsx` to
-`view/frontend/lynx/<vue|react>/src/Components/Product/GiftCard.*`, replace the quantity section with the type's
+copy `Components/Product/Simple.vue` to
+`view/frontend/lynx/vue/src/Components/Product/GiftCard.vue`, replace the quantity section with the type's
 fields and add the type's params to the `URLSearchParams` body. Details:
 [reference/giftcard-example.md](reference/giftcard-example.md#option-c).
 
@@ -263,7 +265,9 @@ list exact paths (`catalog_product_view_type_simple`) need your path added to th
 - To change one existing type, plug into its provider (`afterResolve` on `Provider\Product\Detail\Configurable`,
   return early when `!isset($result['product_id'])`); a plugin on `AbstractDetail` hits every type.
 - Prices for display come from `priceInfo` / `PriceCurrencyInterface::convert()`; buy request values stay in the
-  type's own unit.
+  type's own unit. A price your type adds (an option, an amount) also needs its untaxed value while
+  `$this->taxHelper->displayBothPrices()`: `getAmount()->getValue(\Magento\Tax\Pricing\Adjustment::ADJUSTMENT_CODE)`,
+  sent as `price_excl_tax` next to it.
 - Providers never read the customer session: product pages are in the full page cache.
 - Labels translated in PHP (`__()`), Magento's own phrases reused (`Add to Cart`, `Adding...`, `Add to Wish List` are
   already in `AbstractDetail` labels); new phrases go to `i18n/en_US.csv`.
@@ -272,11 +276,11 @@ list exact paths (`catalog_product_view_type_simple`) need your path added to th
 
 ## Check
 
-- `bin/magento setup:upgrade`, `bin/magento lynx:workspace:setup <themes>` (new module), `bin/magento
+- `bin/magento setup:upgrade`, `bin/magento lynx:theme:setup <themes>` (new module), `bin/magento
   lynx:static:deploy` (also writes the `Lynx` props types), `bin/magento cache:clean config lynx_component full_page`
   (di.xml, `.graphqls` definitions and layouts, full page cache); `bin/magento lynx:compile components` if the site runs
   compiled.
-- A real product of the type renders its layout on a Lynx store view, in both Vue and React themes.
+- A real product of the type renders its layout on a Lynx store view.
 - Editor lists **Products › Gift card product page**; preview opens a product of that type; your components are offered
   there and only there.
 - Add to Cart filled: product added with options; cart page and mini cart show them, mini cart count updates without

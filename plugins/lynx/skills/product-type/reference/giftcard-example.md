@@ -165,100 +165,6 @@ onUnmounted(() => optionsStore.forget(props.product_id, CONTRIBUTOR))
 </template>
 ```
 
-### `view/frontend/lynx/react/src/Components/GiftCardOptions.tsx`
-
-```tsx
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useProductStore } from 'OOCS_LynxCatalog/stores/productStore'
-import { formatPrice } from 'OOCS_LynxTheme/utils/price'
-
-type Props = Lynx.VendorGiftCardOptions
-
-// This block's key among the contributions to the product's request
-const CONTRIBUTOR = 'vendor_giftcard'
-const EMPTY_LIST: never[] = []
-const EMPTY_MAP: Record<string, never> = {}
-
-export default function GiftCardOptions({ product_id = 0, amounts = EMPTY_LIST, labels = EMPTY_MAP }: Props) {
-    const optionsStore = useProductStore()
-    // The store object changes with every update; effects read the current one
-    const storeRef = useRef(optionsStore)
-    storeRef.current = optionsStore
-
-    const [amount, setAmount] = useState<Lynx.VendorGiftCardAmount | null>(null)
-    const [name, setName] = useState('')
-    const [email, setEmail] = useState('')
-    const [message, setMessage] = useState('')
-    const section = useRef<HTMLElement>(null)
-
-    const missing = useMemo(
-        () =>
-            [!amount && labels.amount, !name.trim() && labels.recipientName, !email.trim() && labels.recipientEmail]
-                .filter((title): title is string => !!title),
-        [amount, name, email, labels]
-    )
-
-    useEffect(() => {
-        storeRef.current.contribute(product_id, CONTRIBUTOR, {
-            fields: {
-                giftcard_amount: amount ? String(amount.value) : '',
-                giftcard_recipient_name: name,
-                giftcard_recipient_email: email,
-                giftcard_message: message,
-            },
-            files: {},
-            price: amount?.price ?? 0,
-            missing,
-        })
-    }, [product_id, amount, name, email, message, missing])
-
-    // Withdraw from the product just left, and when the block goes away
-    useEffect(() => () => storeRef.current.forget(product_id, CONTRIBUTOR), [product_id])
-
-    // Add to Cart was pressed with a field empty
-    const tick = optionsStore.validationTicks[product_id]
-    useEffect(() => {
-        if (tick) section.current?.querySelector('input')?.focus()
-    }, [tick])
-
-    return (
-        <section ref={section} className="border-0 border-b border-solid border-base-300 py-4 grid gap-4">
-            <fieldset className="grid gap-2">
-                <legend className="mb-2 font-semibold text-base-content">{labels.amount}</legend>
-                <div className="flex flex-wrap gap-2">
-                    {amounts.map(option => (
-                        <button
-                            key={option.value}
-                            type="button"
-                            className={`l-btn ${amount?.value === option.value ? 'l-btn-primary' : 'l-btn-outline'}`}
-                            aria-pressed={amount?.value === option.value}
-                            onClick={() => setAmount(option)}
-                        >
-                            {formatPrice(option.price)}
-                        </button>
-                    ))}
-                </div>
-            </fieldset>
-            <label className="grid gap-1">
-                <span className="text-sm">{labels.recipientName}</span>
-                <input value={name} onChange={e => setName(e.target.value)} type="text" required className="l-input w-full" />
-            </label>
-            <label className="grid gap-1">
-                <span className="text-sm">{labels.recipientEmail}</span>
-                <input value={email} onChange={e => setEmail(e.target.value)} type="email" required className="l-input w-full" />
-            </label>
-            <label className="grid gap-1">
-                <span className="text-sm">{labels.message}</span>
-                <textarea value={message} onChange={e => setMessage(e.target.value)} rows={3} className="l-textarea w-full" />
-            </label>
-        </section>
-    )
-}
-```
-
-Add `Amount`, `Recipient Name`, `Recipient Email`, `Message` to `i18n/en_US.csv`. The Product Detail does the rest:
-blocking the POST while a field is empty, the POST, the response messages and the section reload.
-
 ## Option c
 
 ### `etc/components/GiftCard.graphqls`
@@ -294,9 +200,9 @@ Product Media, the breadcrumbs to Product: both already list your path (SKILL.md
 
 ### Component changes
 
-Copy `Components/Product/Simple.vue` and `Simple.tsx` from
-`module-lynx-catalog/view/frontend/lynx/<vue|react>/src/` to
-`Vendor/GiftCardLynx/view/frontend/lynx/<vue|react>/src/Components/Product/GiftCard.*`. Keep price, rating, the
+Copy `Components/Product/Simple.vue` from
+`module-lynx-catalog/view/frontend/lynx/vue/src/` to
+`Vendor/GiftCardLynx/view/frontend/lynx/vue/src/Components/Product/GiftCard.vue`. Keep price, rating, the
 wish list and compare buttons (rendered only when `urls.add_to_wishlist` / `urls.add_to_compare` is present),
 analytics and the three slots. Drop the tier prices and the struck-through price (the provider does not call
 `addQuantityProps()` / `addRegularPrice()`). Change the quantity section and `addToCart()`:
@@ -339,43 +245,6 @@ async function addToCart() {
 }
 </script>
 ```
-
-```tsx
-// Imports and the wish list, compare and analytics code of Simple.tsx stay as they are
-type Props = Lynx.VendorProductDetailGiftCard & { slots?: NodeSlots }
-
-export default function GiftCard({ amounts = EMPTY_LIST, /* …as Simple.tsx */ }: Props) {
-    const [amount, setAmount] = useState<number | null>(null)
-    const [recipient, setRecipient] = useState({ name: '', email: '' })
-    // Shows labels.requiredField under the empty fields once Add to Cart was pressed
-    const [submitted, setSubmitted] = useState(false)
-
-    async function addToCart() {
-        if (adding) return
-
-        if (amount === null || !recipient.name.trim() || !recipient.email.trim() || chosenOptions.missing.length) {
-            setSubmitted(true)
-            optionsStore.requestValidation(product_id)
-            return
-        }
-
-        const body = new URLSearchParams({
-            product: String(product_id),
-            qty: '1',
-            form_key: formKeyStore.ensure(),
-            giftcard_amount: String(amount),
-            giftcard_recipient_name: recipient.name,
-            giftcard_recipient_email: recipient.email,
-        })
-
-        // From here on as in Simple.tsx: custom option fields and uploads, fetch(urls.add_to_cart, …),
-        // the JSON result: messages, then analytics + customerDataStore.reload(sections.add_to_cart) on success, backUrl
-    }
-
-    // …markup of Simple.tsx with the amount and recipient fields in place of the quantity section
-}
-```
-
 
 Built-in components post the same endpoint for every type; only params differ (`super_attribute[<id>]`
 configurable, `bundle_option[<id>][]` bundle, `super_group[<id>]` grouped, `links[]` downloadable).
@@ -496,5 +365,5 @@ class AddSizeGuide
 }
 ```
 
-Read the new prop in a theme override of `OOCS_LynxCatalog/lynx/<vue|react>/src/Components/Product/Configurable.*`
+Read the new prop in a theme override of `OOCS_LynxCatalog/lynx/vue/src/Components/Product/Configurable.vue`
 (see `theme`).

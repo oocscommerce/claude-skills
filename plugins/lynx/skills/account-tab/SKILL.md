@@ -194,9 +194,9 @@ provider returns must be declared here; the server drops the rest.
 The page is not cached (`lynx_no_cacheable`), so reading the session in the provider is safe. Full class:
 [reference/example.md](reference/example.md#provider).
 
-### 8. Section component (Vue + React)
+### 8. Section component
 
-`view/frontend/lynx/vue/src/Components/AccountQuestions.vue` and `.../react/src/Components/AccountQuestions.tsx`.
+`view/frontend/lynx/vue/src/Components/AccountQuestions.vue`.
 Props come typed as `Lynx.VendorAccountProductQuestions` (generated from the `.graphqls`) and items as
 `Lynx.VendorAccountQuestion`. It renders inside the frame: root `w-full`, no outer padding/margin, page heading `h1` from `labels.title`, empty
 state from `labels.empty`, links with Inertia `Link`. Any action must return early when its URL is `'#'` (sample
@@ -223,22 +223,21 @@ Default design (`Design::DEFAULT_ID`), insert only: a Group holding the My Accou
 - Sample rows never touch real data: endpoints `#`, ids that cannot match real rows (negative ids), and the component
   skips posting to `#`.
 - Labels translated in the provider (`__()`), reusing Magento's or the extension's phrases; no hardcoded UI text in
-  `.vue` / `.tsx`. Design tokens only, sizes from the theme scale, never below `text-sm`.
+  `.vue`. Design tokens only, sizes from the theme scale, never below `text-sm`.
 
 ## Check
 
 1. `bin/magento setup:upgrade`; `bin/magento cache:clean config layout full_page lynx_component` (plus
    `bin/magento lynx:compile components` when the site runs compiled).
-2. `bin/magento lynx:workspace:setup <themes>` (new module), then `bin/magento lynx:static:deploy` (writes the
+2. `bin/magento lynx:theme:setup <themes>` (new module), then `bin/magento lynx:static:deploy` (writes the
    `Lynx.*` types, then builds).
 3. Signed out, open `/productquestions/my/index`: redirected to sign in.
 4. Signed in: sidebar shows **My Product Questions** in position, highlighted on the page; list or empty state shows;
    other tabs still work; mobile sidebar shows it too.
 5. Admin > PageBuilder: page switcher **Account › My product questions page (Sample)** shows the frame with sample
    rows; the section appears in the component picker only for this page.
-6. Both Vue and React themes if the store builds both.
 
 ## Reference
 
-- [reference/example.md](reference/example.md) - full provider, Vue and React section components, data patch
+- [reference/example.md](reference/example.md) - full provider, section component, data patch
 - https://docs.oocscommerce.com/lynx/developer/account-tabs

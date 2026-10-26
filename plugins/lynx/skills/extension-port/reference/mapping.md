@@ -9,7 +9,7 @@ area).
 | Luma piece | On Lynx | How |
 |---|---|---|
 | Block + `.phtml` in a page via layout XML | Component + provider | Provider calls the same repository/view model/service; merchant places the component in PageBuilder |
-| KO UI component, jQuery widget, `x-magento-init` / `data-mage-init` | Vue + React component | The JSON config becomes provider props |
+| KO UI component, jQuery widget, `x-magento-init` / `data-mage-init` | Vue component | The JSON config becomes provider props |
 | RequireJS mixin or `map` of core JS (`catalog-add-to-cart`, `Magento_Checkout/js/…`) | No equivalent (not loaded) | `after` plugin on the Lynx provider's `resolve()` to add data; your component in a slot of the Lynx component; or a theme override of its markup |
 | Plugin on block output (`afterToHtml`), `*_html_after` observers | Never run: the block is never created | Hook the data the Lynx provider reads |
 | View models of Luma blocks | Never run unless the block is declared in a `lynx_` file | Call them from your provider |
@@ -17,7 +17,7 @@ area).
 | Blocks in `content`, `sidebar.main`, `product.info.main`… | Containers do not exist in `lynx_column` | `head.additional`, `lynx.after.body.start`, `lynx.main.container`, `lynx.before.body.end`, or a component |
 | Customer data section (`sections.xml` + `SectionSourceInterface`) | Works unchanged | `useCustomerDataStore().section('<name>')`, reload after your own requests |
 | AJAX controller returning JSON or a redirect | Reused | `fetch` with `X-Requested-With: XMLHttpRequest`, or Inertia `router.post` with `forceFormData: true` for redirect + flash |
-| Storefront page with own route + layout | Controller runs, but its regular layout files are not read | Layout-driven page (preferred) or `InertiaService::setPage()`; or Theme Fallback |
+| Storefront page with own route + layout | Controller runs, but its regular layout files are not read | Layout-driven page (preferred) or `InertiaService::setPage()`; or Page Fallback |
 | `customer_account_navigation` tab | Account sidebar entry + section component | `account-tab` skill |
 | Checkout `layoutProcessor`, `checkout_index_index.xml`, `checkoutConfig` mixins, KO checkout components | Do not apply (Lynx checkout) | Payment renderer, shipping renderer, or component in a checkout/cart slot |
 | Express wallet button | Component in group `express_checkout`, placed in the Express Checkout slot | `payment-method` |
@@ -74,7 +74,7 @@ clear it. Order: `setup:upgrade` → `setup:di:compile` → `lynx:compile` → s
 ## Checkout
 
 `checkout/index/index` is the Lynx checkout, always a full page load. Offline payment methods show without work;
-online methods are hidden until they have a Lynx renderer. Multishipping is in the default Theme Fallback list.
+online methods are hidden until they have a Lynx renderer. Multishipping is in the default Page Fallback list.
 
 ## Other runtime changes
 

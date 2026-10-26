@@ -7,7 +7,7 @@ Skills that teach [Claude Code](https://claude.com/claude-code) how to build on 
 | Skill | Use it to |
 |---|---|
 | `basics` | Shared foundation: module skeleton, dependencies, styling rules, CLI. The other skills build on it. |
-| `component` | Create a PageBuilder component (Vue and React) and register it |
+| `component` | Create a PageBuilder component (Vue) and register it |
 | `component-settings` | Add or change the settings a component shows in the editor |
 | `provider` | Give a component its data from a PHP provider |
 | `extend-component` | Add markup inside a built-in component (cart line, product card, order page) or run code at its actions (add to cart, update cart, place order) |
@@ -27,7 +27,7 @@ Skills that teach [Claude Code](https://claude.com/claude-code) how to build on 
 ## Requirements
 
 - Claude Code 2.1.275 or later
-- A Magento project with Lynx installed (`oocscommerce/lynx`), see [Installation](https://docs.oocscommerce.com/lynx/developer/installation)
+- A Magento project with Lynx installed (`oocscommerce/magento2-lynx-community`), see [Installation](https://docs.oocscommerce.com/lynx/developer/installation)
 
 ## Install
 
@@ -60,7 +60,7 @@ The settings file declares the marketplace and enables the plugin for the projec
 Describe what you want; Claude Code picks the matching skill:
 
 ```text
-Add a Lynx component "Store Hours" with a title setting and a list of opening hours, for Vue and React.
+Add a Lynx component "Store Hours" with a title setting and a list of opening hours.
 ```
 
 You can also call a skill by name, such as `/lynx:component`. Review the code it writes like any other code, then build and test as described in [Development Setup](https://docs.oocscommerce.com/lynx/developer/setup).

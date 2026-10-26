@@ -1,17 +1,17 @@
 ---
 name: payment-method
-description: Adds a payment method to the Lynx one-page checkout (OOCS_LynxCheckout) - the client-side renderer (Vue and React) mounted under the method's radio in the Payment step, its `paymentMethodRenderers` entry in etc/frontend/di.xml, the PHP config class that feeds it public keys and translated labels, and optionally an express checkout button for the `express` slot of the Checkout and Checkout Cart components. Covers the form, wallet button and redirect flow shapes (`preparePayment`, `afterPlaceOrder`, `ownsAction`, `loaded`, `placeOrder`, `validate`), offline vs online visibility, the reCAPTCHA key per method, the CSP nonce for gateway SDKs and an offline method with its own field. Use when a developer says "payment renderer for Lynx checkout", "make my payment gateway work on Lynx", "my payment method does not show in the Lynx checkout", "add a PO/reference field to an offline method", "Apple Pay / wallet / express button on Lynx". Use with the basics skill.
+description: Adds a payment method to the Lynx one-page checkout (OOCS_LynxCheckout) - the client-side Vue renderer mounted under the method's radio in the Payment step, its `paymentMethodRenderers` entry in etc/frontend/di.xml, the PHP config class that feeds it public keys and translated labels, and optionally an express checkout button for the `express` slot of the Checkout and Checkout Cart components. Covers the form, wallet button and redirect flow shapes (`preparePayment`, `afterPlaceOrder`, `ownsAction`, `loaded`, `placeOrder`, `validate`), offline vs online visibility, the reCAPTCHA key per method, the CSP nonce for gateway SDKs and an offline method with its own field. Use when a developer says "payment renderer for Lynx checkout", "make my payment gateway work on Lynx", "my payment method does not show in the Lynx checkout", "add a PO/reference field to an offline method", "Apple Pay / wallet / express button on Lynx". Use with the basics skill.
 ---
 
 # Lynx payment method renderer
 
-Produces the Lynx side of a Magento payment method: a renderer component (Vue + React) under the method's radio in the
+Produces the Lynx side of a Magento payment method: a renderer component (Vue) under the method's radio in the
 Payment step, its pool entry, a config class, and optionally an express checkout button. The server side (payment
 model, gateway commands, `system.xml`, data-assign observer) stays a standard Magento payment method.
 
 ## Before you start
 
-- Read **basics** (module layout, `view/frontend/lynx/<vue|react>/src`, import aliases, build commands, styling
+- Read **basics** (module layout, `view/frontend/lynx/vue/src`, import aliases, build commands, styling
   rules). Express buttons are ordinary components: their registry entry and provider follow **component** and
   **provider**. reCAPTCHA keys and analytics events are covered in **forms-analytics**.
 - Find the payment method code (`payment/<code>/...` in `config.xml`) and whether the method is offline
@@ -27,7 +27,7 @@ model, gateway commands, `system.xml`, data-assign observer) stays a standard Ma
   | Express button | `OOCS_LynxPaymentBraintree::Components/Express/PayPal`, `OOCS_LynxPaymentStripe::Components/Express/Wallets`, `OOCS_LynxPaymentPayPal::Components/Express/Shortcut` |
 
 - The Payment step code to read when in doubt: `OOCS\LynxCheckout\Provider\Checkout\Step\Payment` and
-  `OOCS_LynxCheckout/Components/Checkout/Step/Payment.{vue,tsx}`.
+  `OOCS_LynxCheckout/Components/Checkout/Step/Payment.vue`.
 
 ### Which methods show up
 
@@ -89,7 +89,7 @@ One item per **payment method code** in the `paymentMethodRenderers` argument of
 
 | Key | Meaning |
 |---|---|
-| `component` | `<Module>/<path under src>` without extension, **slash** after the module name (not `::`). Resolves to the `.vue` on a Vue theme and the `.tsx` on a React theme |
+| `component` | `<Module>/<path under src>` without extension, **slash** after the module name (not `::`). Resolves to the `.vue` file |
 | `config` | Object implementing `OOCS\LynxCheckout\Api\PaymentMethodRendererConfigInterface`; `getConfig()` becomes the `config` prop. A wrong class throws a `LogicException` naming the entry |
 | `recaptcha` | reCAPTCHA key guarding place order for this method. Absent = `place_order`; `none` skips it. Use the key the gateway's own module validates under (Lynx's Braintree card uses `braintree`, Braintree PayPal/Google Pay use `none`). See **forms-analytics** |
 
@@ -143,9 +143,9 @@ class Foo implements PaymentMethodRendererConfigInterface
 
 ### 4. The renderer - pick the shape
 
-Files: `view/frontend/lynx/vue/src/Components/Foo.vue` and `view/frontend/lynx/react/src/Components/Foo.tsx`
-(same relative path in both). Gateway SDKs from npm go in the module's own `view/frontend/lynx/<vue|react>/package.json`
-(pinned version), never in the theme's.
+File: `view/frontend/lynx/vue/src/Components/Foo.vue`. Gateway SDKs from npm go in the module's own
+`view/frontend/lynx/vue/package.json`
+(pinned version), never in the theme's; `lynx:theme:setup` installs them into each theme.
 
 **Props in:**
 
@@ -155,15 +155,14 @@ Files: `view/frontend/lynx/vue/src/Components/Foo.vue` and `view/frontend/lynx/r
 | `placeOrder` | `(additionalData?: Record<string, unknown>) => Promise<boolean>` | Places the order; `true` when placed. On failure it shows the error itself and resolves `false` |
 | `validate` | `() => boolean` | Checks a method is picked and every manual Terms and Conditions box is ticked |
 
-**Exposed out** (Vue `defineExpose`, React `useImperativeHandle(ref, ...)` on the `ref` prop - React 19 passes `ref` as
-a prop). All optional:
+**Exposed out** (`defineExpose`). All optional:
 
 | Member | Type | Meaning |
 |---|---|---|
 | `preparePayment` | `() => Promise<Record<string, unknown>>` | Called by the shared **Place Order** button; resolve the data (token, nonce), reject with a message to stop |
 | `afterPlaceOrder` | `(orderId: string) => Promise<string \| null>` | After the order exists; a URL redirects there, `null` goes to the success page |
 | `ownsAction` | `boolean` | `true` hides the shared **Place Order** button (wallet draws its own) |
-| `loaded` | `boolean` | `false` while the SDK/iframe loads: Place Order stays disabled and the checkbox reCAPTCHA waits. Omit if ready on mount. Vue: expose the `ref` itself; React: list it in the `useImperativeHandle` deps |
+| `loaded` | `boolean` | `false` while the SDK/iframe loads: Place Order stays disabled and the checkbox reCAPTCHA waits. Omit if ready on mount. Expose the `ref` itself |
 
 What `placeOrder()` does, in this order (from `Step/Payment.vue`):
 
@@ -181,7 +180,7 @@ validate() -> reCAPTCHA token for the method's key (unless 'none') -> track('add
   so hosted fields keep their input.
 - A rejected `preparePayment()` shows `error.message` as an error message; reject with a gateway message or a label.
 
-Minimal **form** renderer (Vue; the React twin and the full SDK version are in
+Minimal **form** renderer (the full SDK version is in
 [reference/renderer-examples.md](reference/renderer-examples.md)):
 
 ```vue
@@ -248,7 +247,7 @@ drives the quote through the checkout store. Declaration, provider (`enabled` fr
 
 ```bash
 bin/magento module:enable Vendor_PaymentFoo && bin/magento setup:upgrade
-bin/magento lynx:workspace:setup OOCS_LynxVue OOCS_LynxReact   # new module or new package.json
+bin/magento lynx:theme:setup OOCS_LynxVue                      # new module or changed package.json
 bin/magento lynx:static:deploy
 bin/magento lynx:compile                                       # if the store uses compiled config
 bin/magento cache:clean
@@ -267,8 +266,6 @@ compiled), then `lynx:static:deploy` for its `Lynx.<TypeName>` type.
   `Vendor_Module::Components/Express/Foo`.
 - **Online methods need an entry** or they are hidden; do not "fix" a missing method by marking it offline.
 - **No UI text in the component.** Every string comes from `config.labels` (translated in PHP).
-- **Ship both themes** (`.vue` + `.tsx`, same path) unless the store uses only one; a missing file breaks the method on
-  that theme.
 - **Styling:** `checkout.inputClass(invalid)` for inputs, `l-btn l-btn-primary` for buttons, tokens only, no text below
   `text-sm`. Mark inline errors with `data-checkout-error`.
 - **CSP:** add gateway domains to your module's `etc/csp_whitelist.xml`. An SDK that injects inline scripts must get the
@@ -279,12 +276,10 @@ compiled), then `lynx:static:deploy` for its `Lynx.<TypeName>` type.
   you build. External SDK scripts are outside SRI.
 - **No heavy constructors** in the config class or express provider; never fetch client tokens in an express provider
   (it would hold back the whole checkout page) - let the component fetch after mount.
-- React: read values a handle method needs through a `useRef` mirror (see PurchaseOrder.tsx) or list them in the deps,
-  otherwise `preparePayment` sees stale state.
 
 ## Check
 
-- [ ] Method appears in the Payment step on the Vue **and** React theme; its chunk loads only when picked.
+- [ ] Method appears in the Payment step; its chunk loads only when picked.
 - [ ] Place Order disabled until `loaded`; the checkbox reCAPTCHA (when the key is protected) draws after it.
 - [ ] Successful order: `additional_data` arrives (check `sales_order_payment.additional_information`).
 - [ ] Each failure: tokenization error, shopper closes the popup, expired session, rejected card - message shown,
@@ -298,8 +293,8 @@ compiled), then `lynx:static:deploy` for its `Lynx.<TypeName>` type.
 
 ## Reference
 
-- [reference/renderer-examples.md](reference/renderer-examples.md) - complete form renderer (Vue + React), button and
-  redirect shapes in both frameworks, offline method with its own field + data-assign observer.
+- [reference/renderer-examples.md](reference/renderer-examples.md) - complete form renderer, button and
+  redirect shapes, offline method with its own field + data-assign observer.
 - [reference/express-buttons.md](reference/express-buttons.md) - express button registry entry, provider, component
   sequence, Terms and Conditions, cart page.
 - https://docs.oocscommerce.com/lynx/developer/payment-methods

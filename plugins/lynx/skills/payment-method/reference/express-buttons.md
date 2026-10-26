@@ -133,8 +133,7 @@ await checkout.rest('payment-information', {
 })
 ```
 
-Skeleton (Vue; React is the same with `useCheckoutStore()` / `useMessagesStore()` hooks at the top of the function and
-`return null` when not shown):
+Skeleton:
 
 ```vue
 <script setup lang="ts">

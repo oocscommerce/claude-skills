@@ -53,7 +53,7 @@ For values that are codes (SKUs, anchors, cookie names, CSS), not shopper-facing
 content: RichText! @setting(label: "Content", default: "<p>Write something.</p>")
 ```
 
-Render with `v-html` (Vue) / `dangerouslySetInnerHTML={{ __html: content }}` (React).
+Render with `v-html`.
 
 ## LocalizedText, LocalizedTextarea, LocalizedRichText
 

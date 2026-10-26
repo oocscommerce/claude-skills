@@ -109,9 +109,9 @@ return $this->pageFactory->create();
 ```
 
 Inject `OOCS\LynxInertia\Service\InertiaService`, `PageFactory`, `Magento\Framework\App\RequestInterface`.
-`Vendor_Faq::Ask` resolves to `Pages/Ask` in the module's `view/frontend/lynx/<vue|react>/src/`; a name without `::`
+`Vendor_Faq::Ask` resolves to `Pages/Ask` in the module's `view/frontend/lynx/vue/src/`; a name without `::`
 resolves to `Pages/<Name>` in the theme's own source. Props must be JSON-serializable; translate strings in PHP with
-`__()`. Page files (minimal, both frameworks) are in [reference/page-component.md](reference/page-component.md).
+`__()`. A minimal page file is in [reference/page-component.md](reference/page-component.md).
 
 ### 3. Layout file `view/frontend/layout/lynx_faq_index_index.xml` (optional)
 
@@ -202,7 +202,7 @@ Full patch and node shape: [reference/layout-patch.md](reference/layout-patch.md
 - **Partial reload**: `router.reload({ only: ['archive'] })`. On layout-driven pages providers defer their own data and
   the component gets a `_key` prop to reload with `router.reload({ only: [props._key] })` (see **provider**).
 
-Code for each, Vue and React: [reference/props-and-navigation.md](reference/props-and-navigation.md).
+Code for each: [reference/props-and-navigation.md](reference/props-and-navigation.md).
 
 ### 7. Links to the page
 
@@ -228,20 +228,18 @@ are followed by the browser either way.
 - `PreviewPagebuilder` `pages` go in **global** `etc/di.xml`; an area-level declaration would replace the merged list
   in that area.
 - `route` of a `sample_data` page must be the full `front/controller/action` (the preview router compares three parts).
-- Labels on the page come from providers/controller props, translated with `__()`; never hardcode UI text in `.vue`/`.tsx`.
-- Ship `view/frontend/lynx/vue/src` and `view/frontend/lynx/react/src` page files unless only one theme is targeted.
+- Labels on the page come from providers/controller props, translated with `__()`; never hardcode UI text in `.vue`.
 
 ## Check
 
 1. `bin/magento setup:upgrade` (routes, data patch), `bin/magento cache:clean config layout full_page lynx_component`.
-2. New module with page/component files: `bin/magento lynx:workspace:setup <themes>` then
-   `bin/magento lynx:static:deploy` (or `npm run build` in the project root).
+2. New module with page/component files: `bin/magento lynx:theme:setup <themes>` then
+   `bin/magento lynx:static:deploy` (or `npm run build` in the theme's `lynx/`).
 3. Open `/faq` on a Lynx store view: full load shows the title and header/footer; navigate to it via a `Link` from
    another page - DevTools shows a JSON response (`X-Inertia: true`), not HTML.
 4. Admin > PageBuilder > the design > page switcher lists **FAQ**; the preview loads the route; saving a layout shows on
    the storefront.
 5. Private page: response has no FPC hit (`X-Magento-Cache-Debug` MISS each time in developer mode) and robots NOINDEX.
-6. Check both Vue and React themes if the store builds both.
 
 ## Reference
 
@@ -250,5 +248,5 @@ are followed by the browser either way.
   zone from an observer
 - [reference/props-and-navigation.md](reference/props-and-navigation.md) - shared/deferred/optional props, partial
   reload, Link, forms on the page
-- [reference/page-component.md](reference/page-component.md) - controller-declared page component, Vue and React
+- [reference/page-component.md](reference/page-component.md) - controller-declared page component
 - https://docs.oocscommerce.com/lynx/developer/inertia, https://docs.oocscommerce.com/lynx/developer/layout-xml

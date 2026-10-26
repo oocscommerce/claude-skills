@@ -51,12 +51,6 @@ const props = withDefaults(defineProps<Lynx.VendorBackToTop>(), { labels: () => 
 </template>
 ```
 
-```tsx
-export default function BackToTop({ labels = {} }: Lynx.VendorBackToTop) {
-    return <button className="l-btn l-btn-primary" aria-label={labels.backToTop}>…</button>
-}
-```
-
 Values only the browser knows stay as placeholders: `__('Items %1 to %2 of %3 total')` in PHP,
 `(labels.itemsOf ?? '').replace('%1', String(from))…` in the component.
 

@@ -14,8 +14,7 @@ app/code/Vendor/ShippingFoo/
 ├── Model/Config/DeliveryDate.php   (SKILL.md step 3)
 ├── Plugin/SaveDeliveryDate.php     (SKILL.md step 5)
 └── view/frontend/lynx/
-    ├── vue/src/Components/DeliveryDate.vue    (SKILL.md step 4)
-    └── react/src/Components/DeliveryDate.tsx  (below)
+    └── vue/src/Components/DeliveryDate.vue    (SKILL.md step 4)
 ```
 
 ## Storage (plain Magento)
@@ -63,69 +62,6 @@ if ($parsed === false || $parsed->format('Y-m-d') !== $date || $date <= date('Y-
 ```
 
 `i18n/en_US.csv`: add `"Delivery Date","Delivery Date"` (and any phrase that is not already Magento's).
-
-## React renderer - `Components/DeliveryDate.tsx`
-
-```tsx
-import { useImperativeHandle, useState, type Ref } from 'react'
-import { useCheckoutStore } from 'OOCS_LynxCheckout/stores/checkoutStore'
-
-type Handle = {
-    validate: () => boolean
-    data: () => { vendorFooDeliveryDate: string }
-    summary: string
-}
-
-type Props = {
-    rate: { carrier_code: string; method_code: string }
-    config: { selected?: string; min?: string; labels?: Record<string, string> }
-    ref?: Ref<Handle>
-}
-
-export default function DeliveryDate({ config, ref }: Props) {
-    const checkout = useCheckoutStore()
-    const [date, setDate] = useState(config.selected ?? '')
-    const [error, setError] = useState('')
-
-    useImperativeHandle(
-        ref,
-        () => ({
-            validate() {
-                const message = date ? '' : (config.labels?.required ?? '')
-                setError(message)
-                return !message
-            },
-            data: () => ({ vendorFooDeliveryDate: date }),
-            summary: date,
-        }),
-        [date, config.labels?.required]
-    )
-
-    return (
-        <div>
-            <label htmlFor="vendor-foo-date" className="block text-sm text-base-content mb-1.5">
-                {config.labels?.deliveryDate} <span className="text-error">*</span>
-            </label>
-            <input
-                id="vendor-foo-date"
-                value={date}
-                type="date"
-                min={config.min}
-                className={checkout.inputClass(!!error)}
-                onChange={e => {
-                    setDate(e.target.value)
-                    setError('')
-                }}
-            />
-            {error && (
-                <p data-checkout-error className="mt-1 text-sm text-error">
-                    {error}
-                </p>
-            )}
-        </div>
-    )
-}
-```
 
 ## How In-Store Pickup uses the same pieces
 

@@ -43,10 +43,6 @@ The component needs no code for this: it renders a placeholder while its data pr
 <ul v-else>…</ul>
 ```
 
-```tsx
-if (products === undefined) return <div className="l-skeleton h-64 w-full" aria-busy="true" />
-```
-
 Built-in: Related / Up-sell / Cross-sell Products (`OOCS\LynxCatalog\Provider\Product\Related`, `Upsell`,
 `Crosssell`).
 
@@ -180,40 +176,6 @@ onMounted(() => {
         </div>
     </dl>
 </template>
-```
-
-4. React (`view/frontend/lynx/react/src/Components/Specs.tsx`):
-
-```tsx
-import { useEffect } from 'react'
-import { router } from '@inertiajs/react'
-
-export default function Specs({ rows, lazy, _key = '' }: Lynx.VendorSpecs) {
-    useEffect(() => {
-        if (lazy && rows === undefined && _key) {
-            router.reload({ only: [_key], preserveUrl: true })
-        }
-    }, [lazy, rows, _key])
-
-    if (rows === undefined) {
-        return (
-            <div className="grid gap-3" aria-busy="true">
-                {[1, 2, 3].map(n => <span key={n} className="l-skeleton block h-4 w-full"></span>)}
-            </div>
-        )
-    }
-    if (!rows.length) return <div />
-    return (
-        <dl className="divide-y divide-base-300">
-            {rows.map(row => (
-                <div key={row.label} className="flex gap-6 py-3.5">
-                    <dt className="w-32 shrink-0 font-semibold text-base-content/70">{row.label}</dt>
-                    <dd className="text-base-content">{row.value}</dd>
-                </div>
-            ))}
-        </dl>
-    )
-}
 ```
 
 Test a prop that `resolve()` always sets (`rows`), not a setting. A block that may have nothing to show returns

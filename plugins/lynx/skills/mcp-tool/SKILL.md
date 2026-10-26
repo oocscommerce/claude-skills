@@ -11,7 +11,7 @@ only to clients approved by an admin whose role holds its ACL resource.
 
 ## Before you start
 
-- Read `basics`. `OOCS_LynxMcp` comes with `oocscommerce/lynx` (package `oocscommerce/module-lynx-mcp`; depends on
+- Read `basics`. `OOCS_LynxMcp` comes with `oocscommerce/magento2-lynx-community` (package `oocscommerce/module-lynx-mcp`; depends on
   `OOCS_LynxPageBuilder`).
 - Look at the built-in tools under `vendor/oocscommerce/module-lynx-mcp/Tool/`:
   `Products/SearchProducts.php` (read-only, simple), `Layout/SaveLayout.php` (writes), plus `etc/di.xml` and

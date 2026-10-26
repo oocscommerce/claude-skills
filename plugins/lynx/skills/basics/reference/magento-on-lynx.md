@@ -7,7 +7,7 @@
 | Foundation | `OOCS_LynxComponent` | `module-lynx-component` | Component registry (`etc/components/*.graphqls` reader, generated `Lynx` types), provider interfaces, `LayoutResolver`, `lynx_component` cache type. No PageBuilder dependency. |
 | Foundation | `OOCS_LynxInertia` | `module-lynx-inertia` | `InertiaService` (pages, shared/deferred/optional props), JSON responses, asset versioning, SSR client (`SsrGate`, `SsrRenderer`), SRI |
 | Foundation | `OOCS_LynxPageBuilder` | `module-lynx-page-builder` | Designs, layouts, admin editor, preview/share, design settings, editable pages list (`PreviewPagebuilder`) |
-| Foundation | `OOCS_LynxTheme` | `module-lynx-theme` | `lynx_*` handles, `lynx_column`, Theme Fallback, page shell, global stores, build kits `@oocs/lynx-vue` / `@oocs/lynx-react`, build commands |
+| Foundation | `OOCS_LynxTheme` | `module-lynx-theme` | `lynx_*` handles, `lynx_column`, Page Fallback, page shell, global stores, build kit `@oocs/module-lynx-theme`, build commands |
 | Components | `OOCS_LynxThemeComponent` | `module-lynx-theme-component` | Default components: header, footer, group, row, banner, carousel, heading, cart, checkout success, contact form… |
 | Components | `OOCS_LynxCatalog` | `module-lynx-catalog` | Product pages per type, category, search |
 | Components | `OOCS_LynxProductAlert` | `module-lynx-product-alert` | Price/Stock Alert links, stock alert unsubscribe page (needs `Magento_ProductAlert`) |
@@ -21,7 +21,7 @@
 | Performance | `OOCS_LynxCompiler`, `OOCS_LynxOptimize` | `module-lynx-compiler`, `module-lynx-optimize` | `lynx:compile`; skipping work Lynx does not need |
 | AI | `OOCS_LynxMcp` | `module-lynx-mcp` | MCP server |
 
-Themes: `OOCS/LynxBlank` (shared Magento-level files, no build), `OOCS/LynxVue`, `OOCS/LynxReact` (children of Blank).
+Themes: `OOCS/LynxBlank` (shared Magento-level files, no build), `OOCS/LynxVue` (child of Blank, the storefront theme; child themes extend it).
 
 ## Request lifecycle
 
@@ -61,7 +61,7 @@ Details in skill page.
 | Page layouts (`1column`…), Layout field of entities | Ignored, always `lynx_column` | Arrange in PageBuilder |
 | `<head>` assets from layout | Only from `lynx_*.xml`, full loads only | Load scripts from a component on mount |
 | LESS styles | Not used | Tailwind with design tokens |
-| Other modules' pages | Controller runs; only header/footer + the PageBuilder layout for that action show | Return an Inertia page, or Theme Fallback |
+| Other modules' pages | Controller runs; only header/footer + the PageBuilder layout for that action show | Return an Inertia page, or Page Fallback |
 | Widgets via layout updates, CMS Layout Update XML | Not applied | Components |
 | CMS page Content field | Shown when Render with Lynx is off / no Lynx layout; directives expanded; inline scripts do not run | Component for interactive parts |
 | Category Display Mode / CMS block | Not rendered | Render with Lynx + design the category |
@@ -81,7 +81,7 @@ page config from controllers and `lynx_*.xml`, FPC and cache tags, sessions, for
 |---|---|
 | Observers, plugins, models, cron, admin, REST/GraphQL | Unchanged |
 | Storefront UI in layout XML / `.phtml` / KnockoutJS / jQuery | Lynx component + PHP provider (skill component) |
-| Own storefront page | Inertia page (skill page), or Theme Fallback |
+| Own storefront page | Inertia page (skill page), or Page Fallback |
 | Forms to own controllers | Inertia form or `fetch`, then reload invalidated sections (skill forms-analytics) |
 | Tracking scripts | Analytics bus / backstage component |
 | Payment or shipping UI | Renderer (skills payment-method, shipping-method) |

@@ -12,7 +12,7 @@ to an outside service.
 
 - Read **basics**. The component itself is built with **component**; its URLs, labels and section names come
   from its provider (**provider**).
-- Store imports, identical in Vue (Pinia) and React (`defineStore`) themes:
+- Store imports (Pinia):
   `OOCS_LynxTheme/stores/global/formKeyStore` (`useFormKeyStore`), `.../messagesStore` (`useMessagesStore`),
   `.../customerDataStore` (`useCustomerDataStore`), `.../analyticsStore` (`useAnalyticsStore`);
   `OOCS_LynxTheme/utils/storeConfig` (`config<T>(key, fallback)`, e.g. `config('currencyCode', '')`).
@@ -69,7 +69,7 @@ function submit(event: SubmitEvent) {
 </template>
 ```
 
-React version and the POST controller: [reference/forms.md](reference/forms.md). `useForm` works the same with
+The POST controller: [reference/forms.md](reference/forms.md). `useForm` works the same with
 `forceFormData: true` and `form_key` in its data.
 
 The POST controller is ordinary Magento: implement `HttpPostActionInterface`, `messageManager->add*Message()`, return
@@ -160,7 +160,7 @@ A headless PageBuilder component placed in the **Backstage** zone (on every page
 declaration with `zones: ["backstage"]`, group `utility`, `event_<name>` toggle settings and `consent_cookies`; a provider passing the
 account id (empty when disabled); a component that on mount calls `analytics.addTracker(send)` (the current page's
 events - its `page_view`, `view_item` - replay to it), maps Lynx events to the vendor's, loads the vendor script lazily
-after consent, and `removeTracker` on unmount. Full `.graphqls` + Vue + React + CSP example:
+after consent, and `removeTracker` on unmount. Full `.graphqls` + Vue + CSP example:
 [reference/analytics.md](reference/analytics.md#tracker-component).
 
 ## Rules
@@ -182,7 +182,7 @@ after consent, and `removeTracker` on unmount. Full `.graphqls` + Vue + React + 
 
 1. `bin/magento setup:upgrade`, `bin/magento cache:clean config full_page lynx_component` (plus
    `bin/magento lynx:compile components` when the site runs compiled); new module:
-   `bin/magento lynx:workspace:setup <themes>`, then `bin/magento lynx:static:deploy` (writes the `Lynx.*` types,
+   `bin/magento lynx:theme:setup <themes>`, then `bin/magento lynx:static:deploy` (writes the `Lynx.*` types,
    then builds).
 2. Submit the form: request is `multipart/form-data` with `form_key`; success/error message appears; with a
    reCAPTCHA type selected for the key in **Stores › Configuration › Security › Google reCAPTCHA Storefront** (then
@@ -190,10 +190,9 @@ after consent, and `removeTracker` on unmount. Full `.graphqls` + Vue + React + 
 3. After the action, `/customer/section/load?sections=…` is requested and the header (minicart, wishlist count) updates.
 4. Tracker: add the component to Backstage in PageBuilder, save; on the storefront no vendor request until interaction/
    consent; `page_view` on every navigation; in the editor preview nothing is sent.
-5. Test in both Vue and React themes if the store builds both.
 
 ## Reference
 
-- [reference/forms.md](reference/forms.md) - React form, POST controller, reCAPTCHA keys and store, sections end to end
-- [reference/analytics.md](reference/analytics.md) - store API, events Lynx tracks, tracker component (`.graphqls`, Vue, React, CSP)
+- [reference/forms.md](reference/forms.md) - POST controller, reCAPTCHA keys and store, sections end to end
+- [reference/analytics.md](reference/analytics.md) - store API, events Lynx tracks, tracker component (`.graphqls`, Vue, CSP)
 - https://docs.oocscommerce.com/lynx/developer/forms, https://docs.oocscommerce.com/lynx/developer/inertia#forms

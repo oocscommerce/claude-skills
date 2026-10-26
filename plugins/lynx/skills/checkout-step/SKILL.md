@@ -1,12 +1,12 @@
 ---
 name: checkout-step
-description: Adds a custom step to the Lynx one-page checkout (OOCS_LynxCheckout) - a component in group `checkout_step` that the merchant places in the `before_shipping_method` or `before_payment` slot of the Checkout component, a step provider (`optional()` true, `resolve()` from the posted draft, idempotent `save()` via `OOCS\LynxCheckout\Api\CheckoutStepInterface`), a Vue and React component that calls `checkout.register({ title, skip, data, affectsTotals })` with its heading in `checkout.labels`, `data-step`, inline errors, virtual-cart skipping and an analytics event. Also covers changing the built-in steps with plugins. Use when a developer says "add a checkout step in Lynx", "delivery instructions / gift message / order comment / custom field step on the Lynx checkout", "ask every shopper something before payment", "save extra checkout data to the quote in Lynx", "plugin on a Lynx checkout step". For input tied to one carrier use shipping-method, to one payment method payment-method. Use with the basics skill.
+description: Adds a custom step to the Lynx one-page checkout (OOCS_LynxCheckout) - a component in group `checkout_step` that the merchant places in the `before_shipping_method` or `before_payment` slot of the Checkout component, a step provider (`optional()` true, `resolve()` from the posted draft, idempotent `save()` via `OOCS\LynxCheckout\Api\CheckoutStepInterface`), a Vue component calling `checkout.register({ title, skip, data, affectsTotals })` with its heading in `checkout.labels`, `data-step`, inline errors, virtual-cart skip, analytics event. Also covers changing the built-in steps with plugins. Use when a developer says "add a checkout step in Lynx", "delivery instructions / gift message / order comment / custom field step on the Lynx checkout", "ask every shopper something before payment", "save extra checkout data to the quote in Lynx", "plugin on a Lynx checkout step". For input tied to one carrier use shipping-method, to one payment method payment-method. Use with the basics skill.
 ---
 
 # Lynx checkout step
 
 Produces a new step of the Lynx checkout: a component declaration (`etc/components/<Template>.graphqls`), a step provider that saves to the
-quote, a heading label added to the container, and the step component in Vue and React. The merchant places the step
+quote, a heading label added to the container, and the step component. The merchant places the step
 in PageBuilder; the storage and the copy to the order are plain Magento.
 
 ## Before you start
@@ -19,8 +19,8 @@ in PageBuilder; the storage and the copy to the order are plain Magento.
 - Changing a built-in step does not need a new step - see "Modifying the built-in steps" below.
 - Code to imitate (in `vendor/oocscommerce/module-lynx-checkout`):
   `Provider/Checkout/Step/ShippingMethod.php` (save that returns early), `Controller/Checkout/Process.php` (the flow),
-  `view/frontend/lynx/vue/src/Components/Checkout/Step/ShippingMethod.vue` and the React `.tsx` twin (card markup),
-  `view/frontend/lynx/<vue|react>/src/stores/checkoutStore.ts` (`register`, `StepHandle`).
+  `view/frontend/lynx/vue/src/Components/Checkout/Step/ShippingMethod.vue` (card markup),
+  `view/frontend/lynx/vue/src/stores/checkoutStore.ts` (`register`, `StepHandle`).
 
 ## How the flow works
 
@@ -35,7 +35,7 @@ Checkout (default_checkout)
 1. Address, Shipping Method and Payment are fixed: the container renders them, they are not layout nodes. It gets
    `steps` (the fixed names with the visible nodes of each slot between them) and `steps_url`
    (`/lynx/checkout/process`) from `OOCS\LynxCheckout\Provider\Checkout\Checkout`. Steps whose component the
-   current theme lacks are dropped on the client (a module shipping only `.vue` is skipped on a React theme).
+   current theme lacks are dropped on the client.
 2. Each step component calls `checkout.register(...)`. The flow starts once **every** step in `steps` has registered,
    at the first one not skipped.
 3. Moving to a step (Continue, Edit, page load, an Inertia reload of the step) POSTs
@@ -160,8 +160,7 @@ class AddStepHeading
 
 ### 5. The component
 
-`view/frontend/lynx/vue/src/Components/Checkout/Step/DeliveryNotes.vue` and
-`view/frontend/lynx/react/src/Components/Checkout/Step/DeliveryNotes.tsx`. Complete Vue + React code:
+`view/frontend/lynx/vue/src/Components/Checkout/Step/DeliveryNotes.vue`. Complete code:
 [reference/delivery-notes-example.md](reference/delivery-notes-example.md#the-component).
 
 ```ts
@@ -174,9 +173,8 @@ const step = checkout.register({
 })
 ```
 
-- Vue: call `register()` once in `<script setup>`; the handle's flags are computed refs (`step.isDone.value`).
-  React: call it on **every render** (the store dedupes); flags are plain values (`step.isDone`). The store finds the
-  node name itself (parent node in Vue, `CheckoutStepContext` provided by the container in React).
+- Call `register()` once in `<script setup>`; the handle's flags are computed refs (`step.isDone.value`). The store
+  finds the node name itself (parent node).
 - `register()` returns `{ index, isCurrent, isReached, isDone, loading, continueLabel }`.
 
 Card contract (copy the built-in steps' markup and classes):
@@ -191,8 +189,7 @@ Card contract (copy the built-in steps' markup and classes):
 - Not reached: heading only.
 - Seed the form from the provider props each time they arrive (they are `undefined` until first reached).
 - Continue: validate in the browser, show inline errors marked `data-checkout-error`, then optionally
-  `useAnalyticsStore().track('<your_event>', {...})` (`OOCS_LynxTheme/stores/global/analyticsStore`; in React call the
-  hook at the top of the component), then `checkout.nextStep()`.
+  `useAnalyticsStore().track('<your_event>', {...})` (`OOCS_LynxTheme/stores/global/analyticsStore`), then `checkout.nextStep()`.
 - Inputs: `checkout.inputClass(invalid)` or daisyUI `l-input` / `l-textarea` / `l-checkbox` classes.
 
 Other store members: `prevStep()`, `goTo(index)`, `labels`, `isVirtual`, `draft` (fixed `CheckoutDraft` shape - keep
@@ -202,7 +199,7 @@ your own values in the component), `refreshTotals()`.
 
 ```bash
 bin/magento module:enable Vendor_DeliveryNotes && bin/magento setup:upgrade
-bin/magento lynx:workspace:setup OOCS_LynxVue OOCS_LynxReact
+bin/magento lynx:theme:setup OOCS_LynxVue
 bin/magento lynx:static:deploy   # also writes the Lynx.* types from the .graphqls
 bin/magento lynx:compile        # if the store uses compiled config
 bin/magento cache:clean
@@ -227,9 +224,9 @@ settings (**Steps** group: style, numbering, Continue width, how rates and metho
   (`StringMap`) need nothing.
 - Save more when a step is left: `beforeSave` plugin on `ShippingAddress` or `ShippingMethod` reading your keys from
   `$draft` (e.g. `OOCS\LynxMSI\Plugin\SavePickupLocation`). `Payment` has no `save()`.
-- Change markup: override the step's `.vue` / `.tsx` in a theme; keep `register()`, `data-step` and the `data()` keys
+- Change markup: override the step's `.vue` in a theme; keep `register()`, `data-step` and the `data()` keys
   the providers read (`shippingAddress`, `shippingMethod`...).
-- Address fields: merchant setting **Address Fields** of the Checkout component; no code.
+- Address fields: order, width, required and length limits in Stores > Attributes > Customer Address Fields; no code.
 
 ## Rules
 
@@ -251,12 +248,11 @@ settings (**Steps** group: style, numbering, Continue width, how rates and metho
   into the container's `labels` (`StringMap`), which needs no declaration.
 - **No UI text in the component**; reuse Magento phrases ("Edit", "None", "Please enter less or equal than %1
   symbols.").
-- **Ship `.vue` and `.tsx`** (a theme lacking the file skips the step). Tokens and `l-` classes only, nothing below
-  `text-sm`. Load code with `import`; external scripts need `csp_whitelist.xml` and `checkout.cspNonce`.
+- Tokens and `l-` classes only, nothing below `text-sm`. Load code with `import`; external scripts need `csp_whitelist.xml` and `checkout.cspNonce`.
 
 ## Check
 
-- [ ] Guest and signed-in customer with saved addresses, on the Vue **and** React theme.
+- [ ] Guest and signed-in customer with saved addresses.
 - [ ] Virtual cart: shipping-related step drops out, "Continue to ..." labels follow, `save()` inert.
 - [ ] Edit each finished step and Continue again: values kept, no unnecessary writes.
 - [ ] A value `save()` rejects: message shown, shopper back on your step.
@@ -269,5 +265,5 @@ settings (**Steps** group: style, numbering, Continue width, how rates and metho
 ## Reference
 
 - [reference/delivery-notes-example.md](reference/delivery-notes-example.md) - complete Delivery Instructions module:
-  storage, provider, heading plugin, `.graphqls`, Vue + React component, translations.
+  storage, provider, heading plugin, `.graphqls`, Vue component, translations.
 - https://docs.oocscommerce.com/lynx/developer/checkout-steps

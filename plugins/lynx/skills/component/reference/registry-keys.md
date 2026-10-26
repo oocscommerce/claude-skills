@@ -2,7 +2,7 @@
 
 A component is a `type` with `@component` in `etc/components/<Template>.graphqls` (GraphQL SDL syntax, one file per
 template, named after it). All `.graphqls` files of enabled modules are merged in `<sequence>` order; directives and
-scalars: `OOCS_LynxComponent/etc/components/directives.graphqls`, shared enums (`Align`, `Justify`,
+scalars: `OOCS_LynxComponent/etc/components/base.graphqls`, shared enums (`Align`, `Justify`,
 `TextAlign`, `Rounded`…): `enums.graphqls` beside it. Definitions are cached in cache type `lynx_component`.
 
 ## `@component` arguments
@@ -10,7 +10,7 @@ scalars: `OOCS_LynxComponent/etc/components/directives.graphqls`, shared enums (
 | Argument | Required | What it does |
 |---|---|---|
 | `code` | yes | Registered name (`vendor_highlight`). Stored on every node (`name`); the key deferred data is fetched under. Prefix with your vendor; never rename. |
-| `template` | yes | `Vendor_Module::<path under src, no extension>`. Registry exposes it as `key` = `Vendor_Module/<path>`, also stored on every node (`component`), and resolved by each theme's component registry to the `.vue`/`.tsx` (theme overrides win). |
+| `template` | yes | `Vendor_Module::<path under src, no extension>`. Registry exposes it as `key` = `Vendor_Module/<path>`, also stored on every node (`component`), and resolved by each theme's component registry to the `.vue` (theme overrides win). |
 | `label` | yes | Name in the picker and outline; default node label. |
 | `icon` | no | Phosphor Icons class, regular weight: `ph-image`, `ph-table`, `ph-tag-simple`, `ph-star`. Generic icon when omitted. |
 | `group` | no | snake_case key. Picker heading (`product_list` -> "Product List", General last) and the value slots filter on. Omitted -> `general`. No list to register: a new key is a new group. |
@@ -59,16 +59,14 @@ Product Listing template and its provider data.
 nothing is filtered. No casting, no filling. Developer mode logs
 `Lynx props: <code>.<path> is not declared in etc/components/*.graphqls, dropped.` to `system.log`.
 
-**Generated types.** `bin/magento lynx:static:deploy` (also `lynx:workspace:setup`, `lynx:static:test`) writes
+**Generated types.** `bin/magento lynx:static:deploy` (also `lynx:theme:setup`, `lynx:static:test`) writes
 `<theme>/lynx/dist/props.d.ts`: a global `Lynx` namespace with each enum as a string union, each data type as an
 interface, and one interface per component named as its `type` (settings and data fields, plus `_key?`). The Vue theme lists the file in
 `globalTypeFiles` of its `vite.config.js` so the compiler reads runtime props from it.
 
 ```ts
-const props = defineProps<Lynx.VendorHighlight>()                                  // Vue
-export default function Highlight(props: Lynx.VendorHighlight & { slots?: NodeSlots }) // React
+const props = defineProps<Lynx.VendorHighlight>()
 defineProps<Lynx.VendorA | Lynx.VendorB>() // one template, several codes: fields of only one are optional
-type Props = (Lynx.VendorA | Lynx.VendorB) & { slots?: NodeSlots } // React: brackets before &
 ```
 
 ## Zones
@@ -148,14 +146,12 @@ actions: Slot @slot(label: "Buttons", allow: ["text", "media"], max: 1)
 | `max` | How many times each component (counted by registered name) may be in the slot; the picker greys out a full one as **Already added**. Omitted: no limit. |
 | `name` | The stored slot name when it is no valid field name (`product_info_additional: Slot @slot(label: "Product Options", name: "product.info.additional")`). |
 
-Rendering: Vue `<slot />` / `<slot name="x" />`, test `$slots.x`; React `slots?.default` / `slots?.x`, each already
-rendered. An empty slot (no visible child) is not passed at all.
+Rendering: `<slot />` / `<slot name="x" />`, test `$slots.x`. An empty slot (no visible child) is not passed at all.
 
 ## align
 
-Any block can declare it; DynamicNode removes it from the props and applies it: `data-align="wide|full"` on the Vue
-root (attribute fallthrough), or a `<div data-align-wrap style="display:contents">` wrapper in React. Values other
-than `wide`/`full` do nothing.
+Any block can declare it; DynamicNode removes it from the props and applies it: `data-align="wide|full"` on the component's
+root (attribute fallthrough). Values other than `wide`/`full` do nothing.
 
 ```graphql
 "How far this block reaches inside a constrained Group: None keeps the content width like the blocks around it, Wide reaches the site width, Full runs edge to edge. No effect outside a Group"
@@ -209,7 +205,7 @@ extend type ProductDetailSimple {
 <div v-if="$slots.title_after" class="grid gap-4"><slot name="title_after" /></div>
 ```
 
-Override path: `<theme>/<Vendor_Module>/lynx/<vue|react>/src/<same path as in the module>`.
+Override path: `<theme>/<Vendor_Module>/lynx/vue/src/<same path as in the module>`.
 
 ## How a node is rendered
 
@@ -219,7 +215,5 @@ Override path: `<theme>/<Vendor_Module>/lynx/<vue|react>/src/<same path as in th
 2. The theme's `DynamicNode` (`OOCS_LynxTheme`) looks up `item.component` in the generated component registry; no
    file for the theme -> renders nothing. It merges deferred data (`page.props[<name>]`) over the stored props,
    pulls out `align`, passes slots, and in the preview adds `data-lynx-id` / `data-lynx-label`.
-3. React wraps each node in an error boundary and `Suspense`: a node that throws renders nothing and logs
-   `[Lynx] node failed: <component>`.
-4. In the editor preview an unregistered node is kept with `unavailable: true` and drawn as
+3. In the editor preview an unregistered node is kept with `unavailable: true` and drawn as
    "<label> · Component not available"; the storefront never receives it.

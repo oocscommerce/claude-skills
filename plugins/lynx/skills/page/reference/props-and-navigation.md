@@ -59,16 +59,9 @@ visitor in the cache variation only.
 Read them:
 
 ```ts
-// Vue
 import { usePage } from '@inertiajs/vue3'
 const page = usePage<{ storeHours?: string }>()
 // page.props.storeHours
-```
-
-```tsx
-// React
-import { usePage } from '@inertiajs/react'
-const { storeHours } = usePage<{ storeHours?: string }>().props
 ```
 
 ## Deferred and optional props (controller-declared page)
@@ -107,29 +100,13 @@ defineProps<{ popular?: string[] }>()
 </template>
 ```
 
-```tsx
-import { Deferred } from '@inertiajs/react'
-
-export default function Popular({ popular }: { popular?: string[] }) {
-    return (
-        <Deferred data="popular" fallback={<div className="l-skeleton h-24 rounded-box" />}>
-            <ul>
-                {popular?.map(question => (
-                    <li key={question}>{question}</li>
-                ))}
-            </ul>
-        </Deferred>
-    )
-}
-```
-
 On layout-driven pages, defer through the component's provider instead (`deferred()` / `deferredGroup()` /
 `optional()` of `AbstractComponentProvider`, skill **provider**); the component then gets a `_key` prop.
 
 ## Partial reload
 
 ```ts
-import { router } from '@inertiajs/vue3' // or '@inertiajs/react'
+import { router } from '@inertiajs/vue3'
 
 router.reload({ only: ['archive'] })      // controller-declared page prop
 router.reload({ only: [props._key] })     // provider-deferred component data on a layout-driven page
@@ -151,22 +128,12 @@ const search = (q: string) => router.get('/catalogsearch/result/', { q })
 </template>
 ```
 
-```tsx
-import { Link, router } from '@inertiajs/react'
-
-const search = (q: string) => router.get('/catalogsearch/result/', { q })
-
-export default function FaqLink({ url, label }: { url: string; label: string }) {
-    return <Link href={url}>{label}</Link>
-}
-```
-
 What Lynx adds on the client:
 
 - Every Inertia GET gets `_lynx=<base64 of path>` (and `_lynx_only` for partial reloads) so FPC keys JSON apart from
   HTML; the server strips them from the URL it returns.
 - `Link`/`router` to another origin, `mailto:`, `tel:` is handed to the browser.
-- Checkout and pages handed to a standard theme (Theme Fallback) answer an Inertia visit with `409` +
+- Checkout and pages handed to a standard theme (Page Fallback) answer an Inertia visit with `409` +
   `X-Inertia-Location` and load in full; use a plain `<a>` for those links.
 - After a visit to a different path, focus moves to `<main id="page-content">`; query-only changes keep focus.
 - On every navigation the client applies `title` and `bodyClass`, shows server flash messages and tracks `page_view`.

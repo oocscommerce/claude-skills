@@ -1,6 +1,6 @@
 ---
 name: extension-port
-description: Ports the storefront of an existing Luma Magento extension to a Lynx store in a separate compatibility module. Inventories what the extension sends to the storefront and maps each piece (block + phtml → component + provider, KnockoutJS/jQuery widget → Vue and React component, layout XML → lynx_<handle>.xml, RequireJS mixins and block-output plugins → provider plugins or slots, customer-data sections and AJAX controllers reused), carries over cache tags with PageCacheIdentities, adds lynx_no_cacheable for personal pages, uses Theme Fallback for whole pages not ported yet, and ends with a compatibility checklist. Also covers rebuilding a Luma store design with an AI assistant over the Lynx MCP server. Use when a developer says "make my extension Lynx compatible", "port Luma module to Lynx", "extension does not show on Lynx", "Hyvä compat module for Lynx", "migrate store to Lynx". Use with the basics skill.
+description: Ports the storefront of an existing Luma Magento extension to a Lynx store in a separate compatibility module. Inventories what the extension sends to the storefront and maps each piece (block + phtml → component + provider, KnockoutJS/jQuery widget → Vue component, layout XML → lynx_<handle>.xml, RequireJS mixins and block-output plugins → provider plugins or slots, customer-data sections and AJAX controllers reused), carries over cache tags with PageCacheIdentities, adds lynx_no_cacheable for personal pages, uses Page Fallback for whole pages not ported yet, and ends with a compatibility checklist. Also covers rebuilding a Luma store design with an AI assistant over the Lynx MCP server. Use when a developer says "make my extension Lynx compatible", "port Luma module to Lynx", "extension does not show on Lynx", "Hyvä compat module for Lynx", "migrate store to Lynx". Use with the basics skill.
 ---
 
 # Lynx Extension Port
@@ -24,7 +24,7 @@ is reused; only the storefront UI is rebuilt. Worked example: `Vendor_ProductQue
 | Luma piece | On Lynx | Skill |
 |---|---|---|
 | Block + `.phtml` placed by layout XML | Component + PHP provider calling the same services; merchants place it in PageBuilder | `component`, `provider` |
-| KO UI component, jQuery widget, `x-magento-init` config | Same UI in Vue and React; the JSON config becomes provider props | `component` |
+| KO UI component, jQuery widget, `x-magento-init` config | Same UI in Vue; the JSON config becomes provider props | `component` |
 | RequireJS mixin / `map` of core JS | Not loaded. Observer on a Lynx event (add to cart, update cart, place order…), plugin on the Lynx provider's `resolve()`, a component in a slot, or a theme override | `extend-component`, `theme` |
 | Block inserted into a core list by layout XML (per cart item, per product card, order items) | Block in a Lynx container + plugin on the owner's provider | `extend-component` |
 | Plugin/observer on block output | Never runs (block is never created). Hook the data the Lynx provider reads | — |
@@ -56,7 +56,7 @@ Vendor/ProductQuestionsLynx/
 ├── i18n/en_US.csv           only phrases the extension does not have
 └── view/frontend/
     ├── layout/lynx_<handle>.xml
-    └── lynx/{vue,react}/src/Components/Questions.{vue,tsx}
+    └── lynx/vue/src/Components/Questions.vue
 ```
 
 Do not put Lynx code inside the extension itself: `<sequence>` does not make a module optional, and a provider
@@ -71,7 +71,7 @@ returns: the server drops undeclared props. Pick `group` by where merchants must
 slots and Product Media's Below Gallery accept `layout`, `text`, `media`, `form`, `product_list`, `product_attribute`,
 `general` but not `product_page`; Product's Images and Details slots accept those and `product_page` too; `general`
 lets it go into a Tab under the product. Use `availableOn: ["catalog_product_view*"]` for product-page blocks (every
-type has its own path). Full `.graphqls`, provider, Vue and React: [reference/product-questions-example.md](reference/product-questions-example.md).
+type has its own path). Full `.graphqls`, provider, Vue component: [reference/product-questions-example.md](reference/product-questions-example.md).
 
 The provider plays the block's role:
 
@@ -112,7 +112,7 @@ public function resolve(array $props): array
   { forceFormData: true })`.
 - reCAPTCHA: `data-recaptcha="<key>"` on the `<form>`, a `<div data-recaptcha-slot>`, read `g-recaptcha-response`
   synchronously in the submit handler (details in `forms-analytics`).
-- All imports from `OOCS_LynxTheme/stores/global/{formKeyStore,messagesStore,customerDataStore}` in both themes.
+- All imports from `OOCS_LynxTheme/stores/global/{formKeyStore,messagesStore,customerDataStore}`.
 
 ### 4. Customer data
 
@@ -146,9 +146,9 @@ headless blocks that set page config in `_prepareLayout()`, and cache behavior. 
 - Providers on cached pages never read the customer session; per-visitor state comes from customer data in the
   browser.
 
-### 7. Not porting a page yet: Theme Fallback
+### 7. Not porting a page yet: Page Fallback
 
-Merchant setting **Stores › Configuration › Lynx › Theme Fallback**: **Enable Fallback**, a non-Lynx **Fallback
+Merchant setting **Stores › Configuration › Lynx › Theme Settings › Page Fallback**: **Enable Fallback**, a non-Lynx **Fallback
 Theme**, and full action names in **Fallback Routes** (one per line, trailing `*` = prefix, e.g. `productquestions_*`).
 Those pages render with the fallback theme, so the extension's layout, templates and JS work; links to them become
 full page loads. Whole pages only — a block on a Lynx page cannot fall back. **Fallback Routes** already holds Lynx's
@@ -166,7 +166,7 @@ starting with `OOCS/Lynx`.
 ```bash
 bin/magento module:enable Vendor_ProductQuestionsLynx
 bin/magento setup:upgrade
-bin/magento lynx:workspace:setup OOCS_LynxVue OOCS_LynxReact   # the themes the store builds
+bin/magento lynx:theme:setup OOCS_LynxVue                      # the themes the store builds
 bin/magento lynx:static:deploy
 bin/magento lynx:compile        # when the store uses compiled configuration (components, sections/routes/events)
 bin/magento cache:clean
@@ -185,7 +185,6 @@ module declares**, into the default design.
 - Labels translated in PHP with `__()` and sent as `labels`; reuse Magento phrases ("Sign In", "This is a required
   field."). Extension CSVs keep working; DB / Inline translations do not apply on Lynx (CSV or language pack;
   `bin/magento lynx:compile translate` with compiled config).
-- Ship both `vue` and `react` folders: a theme renders nothing for a component it has no file for.
 - Tokens and `l-` classes only (`l-btn`, `l-input`, `l-textarea`, `l-alert`, `l-skeleton`), logical classes (`ps-4`,
   `border-s`) for RTL, `text-sm` minimum, one root element, no `window`/`document` during render.
 - Head assets in a page-specific `lynx_` file load only on full page loads; import code from the component instead.
@@ -193,7 +192,7 @@ module declares**, into the default design.
 ## Check
 
 - [ ] Full page load and Inertia navigation (click in, Back) show the same content.
-- [ ] SSR on: no hydration warnings. Both Lynx Vue and Lynx React. RTL store view.
+- [ ] SSR on: no hydration warnings. RTL store view.
 - [ ] Editor preview: change Button color, Corners, Border width — the component follows.
 - [ ] Guest and signed in; customer data after sign-in/out; section reload after a post.
 - [ ] FPC on: no personal data in cached pages across customers; saving the entity in admin refreshes the page.

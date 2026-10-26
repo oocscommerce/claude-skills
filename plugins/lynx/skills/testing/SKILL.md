@@ -1,18 +1,16 @@
 ---
 name: testing
-description: Writes and runs Vitest tests for Lynx storefront code - Vue and React components, stores and utils of a module or theme override - in the `test/` folder beside `src/`, with the `@oocs/lynx-vue/test` / `@oocs/lynx-react/test` helpers (`mountNode`, `renderSsr`, `hydrate`), realistic props from the PHP provider, network and Inertia stubbed, an SSR + hydration check for components on server-rendered pages, and `bin/magento lynx:static:test`. Use when a developer says "write tests for my Lynx component", "test this store", "add a hydration test", "my Lynx test fails", "run the Lynx tests", or "test my theme override". Use with the basics skill.
+description: Writes and runs Vitest tests for Lynx storefront code - Vue components, stores and utils of a module or theme override - in the `test/` folder beside `src/`, with the `@oocs/module-lynx-theme/test` helpers (`mountNode`, `renderSsr`, `hydrate`), realistic props from the PHP provider, network and Inertia stubbed, an SSR + hydration check for components on server-rendered pages, and `bin/magento lynx:static:test`. Use when a developer says "write tests for my Lynx component", "test this store", "add a hydration test", "my Lynx test fails", "run the Lynx tests", or "test my theme override". Use with the basics skill.
 ---
 # Testing Lynx frontend code
 
-Produces test files for the Vue and React editions of a module's (or a theme override's) components, stores and
-utils, and runs them per theme.
+Produces test files for a module's (or a theme override's) components, stores and utils, and runs them per theme.
 
 ## Before you start
 
 - Read **basics**. Tests run on the theme's own Vite build: imports resolve through theme fallback exactly as in the
   storefront, so a test runs against the file that theme ships, its override included.
-- Nothing to install: Vitest, happy-dom, Vue Test Utils and Testing Library come with the build tools
-  (`@oocs/lynx-vue`, `@oocs/lynx-react`) that `bin/magento lynx:workspace:setup` installs.
+- Nothing to install: Vitest, happy-dom and Vue Test Utils come with the build kit (`@oocs/module-lynx-theme`) that `bin/magento lynx:theme:setup` installs.
 - Read the source you test, and for a component also its PHP provider (`resolve()`, `resolveSample()`) and its
   declaration in `etc/components/*.graphqls`: they give the real prop shapes (`Lynx.<TypeName>`), labels and URLs.
 
@@ -20,13 +18,12 @@ utils, and runs them per theme.
 
 ### 1. Place the test file
 
-Mirror the source under `test/` beside `src/`, named `<File>.test.ts` (React: `.test.tsx` only if it holds JSX;
-`createElement` in a `.test.ts` works too).
+Mirror the source under `test/` beside `src/`, named `<File>.test.ts`.
 
 | Source | Test |
 |---|---|
 | `view/frontend/lynx/vue/src/Components/WishlistButton.vue` | `view/frontend/lynx/vue/test/Components/WishlistButton.test.ts` |
-| `view/frontend/lynx/react/src/stores/wishlistStore.ts` | `view/frontend/lynx/react/test/stores/wishlistStore.test.ts` |
+| `view/frontend/lynx/vue/src/stores/wishlistStore.ts` | `view/frontend/lynx/vue/test/stores/wishlistStore.test.ts` |
 | `<theme>/Vendor_Module/lynx/vue/src/Components/WishlistButton.vue` (override) | `<theme>/Vendor_Module/lynx/vue/test/Components/WishlistButton.test.ts` |
 | `<theme>/lynx/src/...` | `<theme>/lynx/test/...` |
 
@@ -36,18 +33,18 @@ no longer runs there, and the theme's own test (if any) does. Files under `test/
 Import what you test by module name, never by relative path:
 
 ```ts
-import WishlistButton from 'Vendor_Module/Components/WishlistButton.vue'   // React: 'Vendor_Module/Components/WishlistButton'
+import WishlistButton from 'Vendor_Module/Components/WishlistButton.vue'
 ```
 
 ### 2. Mount the way a page does
 
 ```ts
-import { hydrate, mountNode, renderSsr } from '@oocs/lynx-vue/test'   // React: '@oocs/lynx-react/test'
+import { hydrate, mountNode, renderSsr } from '@oocs/module-lynx-theme/test'
 ```
 
 | Helper | Returns |
 |---|---|
-| `mountNode(Component, { props, slots/children, page, config })` | Vue Test Utils wrapper (Vue), Testing Library result (React) |
+| `mountNode(Component, { props, slots, page, config })` | Vue Test Utils wrapper |
 | `renderSsr(Component, options)` | Server HTML, rendered with `window`, `document` and every browser-only global removed |
 | `hydrate(Component, options)` | `{ html, el, warnings }`: server HTML hydrated in the browser, every warning/error logged |
 
@@ -55,14 +52,14 @@ import { hydrate, mountNode, renderSsr } from '@oocs/lynx-vue/test'   // React: 
 - `page`: shared Inertia page props as `usePage().props` reads them (`auth`, `preview`…).
 - `config`: the store config read by `config()` of `OOCS_LynxTheme/utils/storeConfig` (`priceFormat`,
   `currencyCode`, `cookie`, `sections`…). Set every key the code reads; never rely on defaults by accident.
-- `slots` (Vue) / `children` (React) for container components.
+- `slots` for container components.
 
 After each test, everything the helpers mounted is unmounted and cookies, storage, the document, mocks
 (`vi.restoreAllMocks`), stubbed globals and fake timers are reset. Do not add your own `afterEach` for that.
 
-### 3. Test behaviour, the same cases in both editions
+### 3. Test behaviour
 
-Write one `describe` per file and the **same `it` names** in the Vue and React files. Cover what the code does:
+Write one `describe` per file. Cover what the code does:
 
 - rendering from props, and the empty or missing-data state;
 - each interaction: click, input, keyboard, submit, with what it sends (payload, `form_key`, URL);
@@ -74,10 +71,10 @@ Assert on text, attributes, `aria-*`, payloads and calls, never on CSS class str
 ```ts
 const fetch = vi.fn(async () => ({ ok: true, json: async () => ({ success: true }) }))
 vi.stubGlobal('fetch', fetch)
-const post = vi.spyOn(router, 'post').mockImplementation(() => {})   // router from '@inertiajs/vue3' / '@inertiajs/react'
+const post = vi.spyOn(router, 'post').mockImplementation(() => {})   // router from '@inertiajs/vue3'
 ```
 
-Patterns for both editions (forms, stores, timers, module state): [reference/patterns.md](reference/patterns.md).
+Patterns (forms, stores, timers, module state): [reference/patterns.md](reference/patterns.md).
 
 ### 4. Add the SSR case, for components on server-rendered pages
 
@@ -97,36 +94,29 @@ success/failure, customer account and login pages, PageBuilder preview only (`Pr
 ### 5. Test stores and utils directly
 
 ```ts
-// Vue
 beforeEach(() => setActivePinia(createPinia()))
 const store = useWishlistStore()
-
-// React: createRegistry from 'OOCS_LynxTheme/stores/defineStore'
-const registry = createRegistry()
-const store = () => useWishlistStore.of(registry).getState()   // read anew: state is replaced, not changed in place
 ```
-
-For a React hook, `renderHook(() => useWishlistStore(), { wrapper })` with a `StoreProvider registry={registry}` wrapper.
 
 ## Rules
 
-- Never change `src/` to make a test pass. When a test exposes a bug (wrong payload, crash, hydration mismatch, Vue
-  and React behaving differently), report it with the file and line and leave that case out until it is fixed: no
+- Never change `src/` to make a test pass. When a test exposes a bug (wrong payload, crash, hydration mismatch),
+  report it with the file and line and leave that case out until it is fixed: no
   failing or skipped tests committed.
 - Each test file is self-contained: no shared helper files; small helpers inside the file are fine.
 - Labels and messages come from props or config in the test, as in production; never assert on text the component
   should not hardcode.
-- No `eslint-disable`, `@ts-ignore`, snapshots. Format with Prettier (`npm run format` at the project root).
+- No `eslint-disable`, `@ts-ignore`, snapshots. Format with Prettier (`npm run format` in the theme's `lynx/`).
 
 ## Check
 
 1. `bin/magento lynx:static:test` (every theme set up), or `bin/magento lynx:static:test OOCS_LynxVue` for one.
    Inside a theme's `lynx/`: `npx vitest run <part of the path>` for one file, `npx vitest` to watch.
-2. Every new file passes in each theme you ship, with no `stderr` output from your tests (Vue warnings,
-   React `act(...)` warnings): fix the test or report the source.
-3. `npm run format`, and `git status` shows only files under `test/`.
+2. Every new file passes in each theme you ship, with no `stderr` output from your tests (Vue warnings):
+   fix the test or report the source.
+3. `npm run format` in each theme's `lynx/`, and `git status` shows only files under `test/`.
 
 ## Reference
 
-- [reference/patterns.md](reference/patterns.md): Vue and React test patterns and test-environment gotchas
+- [reference/patterns.md](reference/patterns.md): test patterns and test-environment gotchas
 - https://docs.oocscommerce.com/lynx/developer/testing

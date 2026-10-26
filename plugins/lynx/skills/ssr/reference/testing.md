@@ -1,8 +1,8 @@
 # Testing SSR locally
 
 Run these where Node.js 22.12+ is available (the project's build container if PHP and Node live in containers).
-`<theme>/lynx` is the theme's workspace, e.g. `vendor/oocscommerce/theme-frontend-lynx-vue/lynx`,
-`vendor/oocscommerce/theme-frontend-lynx-react/lynx` or your child theme's `app/design/frontend/Vendor/storefront/lynx`.
+`<theme>/lynx` is the theme's workspace, e.g. `vendor/oocscommerce/theme-frontend-lynx-vue/lynx`
+or your child theme's `app/design/frontend/Vendor/storefront/lynx`.
 
 ## 1. Build both bundles from the same sources
 
@@ -18,12 +18,12 @@ npm run build:ssr:worker                                 # Worker bundle → dis
 ```bash
 cd <theme>/lynx
 LYNX_SSR_HOST=127.0.0.1 npm run ssr        # node --enable-source-maps ./dist/ssr/nodejs/server.mjs
-curl -s http://127.0.0.1:13714/health      # {"status":"OK",...}   (React theme default port: 13715)
+curl -s http://127.0.0.1:13714/health      # {"status":"OK",...}
 ```
 
 | Variable | Default | Purpose |
 |---|---|---|
-| `LYNX_SSR_PORT` | `13714` Vue, `13715` React | Listening port |
+| `LYNX_SSR_PORT` | `13714` | Listening port |
 | `LYNX_SSR_HOST` | `0.0.0.0` | Listening address; `127.0.0.1` when PHP is on the same host |
 | `LYNX_SSR_CLUSTER` | unset | `1` forks one worker per CPU core |
 
@@ -86,8 +86,8 @@ The renderer removes `storeConfig` before rendering; components read it through 
 
 ## 6. Hydration
 
-- Open the page in a browser with the console open. A mismatch shows as a hydration error (React) or "Hydration
-  completed but contains mismatches" (Vue production build). Find the node by comparing the server HTML
+- Open the page in a browser with the console open. A mismatch shows as "Hydration completed but contains
+  mismatches" (production build). Find the node by comparing the server HTML
   (JavaScript disabled, or `view-source:`) with the DOM after load.
 - Throttle the network (DevTools) with a cold cache: content that disappears and reappears after load means a node
   re-rendered before its chunk arrived (entry-file behavior, SKILL step 7).

@@ -17,8 +17,7 @@ app/code/Vendor/DeliveryNotes/
 ├── Provider/DeliveryNotes.php
 ├── registration.php
 └── view/frontend/lynx/
-    ├── vue/src/Components/Checkout/Step/DeliveryNotes.vue
-    └── react/src/Components/Checkout/Step/DeliveryNotes.tsx
+    └── vue/src/Components/Checkout/Step/DeliveryNotes.vue
 ```
 
 ## Module and storage
@@ -238,7 +237,7 @@ settings; fields `instructions`, `leave_at_door`, `max_length`, `labels`, each `
 The card follows the built-in steps: heading always, form while current, summary with **Edit** once done. Values live
 in the component and are seeded from the quote whenever the provider answers.
 
-### Vue - `Components/Checkout/Step/DeliveryNotes.vue`
+### `Components/Checkout/Step/DeliveryNotes.vue`
 
 ```vue
 <script setup lang="ts">
@@ -347,131 +346,6 @@ function submit() {
         </template>
     </div>
 </template>
-```
-
-### React - `Components/Checkout/Step/DeliveryNotes.tsx`
-
-```tsx
-import { useEffect, useState } from 'react'
-import { useCheckoutStore } from 'OOCS_LynxCheckout/stores/checkoutStore'
-import { useAnalyticsStore } from 'OOCS_LynxTheme/stores/global/analyticsStore'
-
-// From Provider\DeliveryNotes, undefined until the step is first reached
-type Props = Lynx.VendorCheckoutStepDeliveryNotes
-
-const EMPTY_MAP: Record<string, never> = {}
-
-export default function DeliveryNotes({
-    instructions,
-    leave_at_door = false,
-    max_length = 250,
-    labels = EMPTY_MAP,
-}: Props) {
-    const checkout = useCheckoutStore()
-    // A store is a hook: read it here, use it in submit()
-    const analytics = useAnalyticsStore()
-    const [text, setText] = useState('')
-    const [leaveAtDoor, setLeaveAtDoor] = useState(false)
-    const [error, setError] = useState('')
-
-    // Seed from the quote whenever the provider answers
-    useEffect(() => {
-        if (instructions === undefined) return
-        setText(instructions)
-        setLeaveAtDoor(leave_at_door)
-    }, [instructions, leave_at_door])
-
-    // Called on every render; the store keeps the latest data()
-    const step = checkout.register({
-        title: checkout.labels.deliveryInstructions ?? '',
-        skip: checkout.isVirtual,
-        data: () => ({ vendorDeliveryInstructions: text.trim(), vendorLeaveAtDoor: leaveAtDoor }),
-    })
-
-    function submit() {
-        const message = text.trim().length > max_length ? (labels.tooLong ?? '') : ''
-        setError(message)
-        if (message) return
-        analytics.track('vendor_delivery_instructions', { leave_at_door: leaveAtDoor })
-        checkout.nextStep()
-    }
-
-    if (checkout.isVirtual) return null
-
-    return (
-        <div
-            data-step={step.index}
-            className={checkout.stepCardClass}
-        >
-            <h2
-                className={`text-lg font-semibold text-base-content ${step.isReached ? 'pb-3 mb-4 border-b border-base-300' : ''}`}
-            >
-                {checkout.appearance.stepNumbering && step.number ? `${step.number}. ` : null}
-                {checkout.labels.deliveryInstructions}
-            </h2>
-
-            {step.isDone ? (
-                <div className="flex items-start justify-between gap-3 rounded-box border-(length:--border) border-base-300 p-3">
-                    <div className="text-base text-base-content/80">
-                        {leaveAtDoor && <p className="font-semibold text-base-content">{labels.leaveAtDoor}</p>}
-                        {text && <p className="whitespace-pre-line">{text}</p>}
-                        {!leaveAtDoor && !text && <p>{labels.none}</p>}
-                    </div>
-                    <button
-                        type="button"
-                        className="-m-2 p-2 bg-transparent border-none cursor-pointer text-sm font-semibold text-link"
-                        onClick={() => checkout.goTo(step.index)}
-                    >
-                        {labels.edit}
-                    </button>
-                </div>
-            ) : step.isCurrent ? (
-                <>
-                    {step.loading ? (
-                        <div className="l-skeleton h-32 w-full" aria-busy="true"></div>
-                    ) : (
-                        <div className="grid gap-4">
-                            <label className="grid gap-1">
-                                <span className="text-base font-semibold text-base-content">{labels.instructions}</span>
-                                <textarea
-                                    value={text}
-                                    onChange={event => setText(event.target.value)}
-                                    rows={3}
-                                    maxLength={max_length}
-                                    className={`l-textarea w-full ${error ? 'l-textarea-error' : ''}`}
-                                />
-                            </label>
-                            {error && (
-                                <p data-checkout-error className="text-sm text-error">
-                                    {error}
-                                </p>
-                            )}
-
-                            <label className="flex items-center gap-3 cursor-pointer">
-                                <input
-                                    type="checkbox"
-                                    checked={leaveAtDoor}
-                                    onChange={event => setLeaveAtDoor(event.target.checked)}
-                                    className="l-checkbox l-checkbox-xs l-checkbox-primary shrink-0"
-                                />
-                                <span className="text-base text-base-content">{labels.leaveAtDoor}</span>
-                            </label>
-                        </div>
-                    )}
-
-                    <button
-                        type="button"
-                        className={checkout.stepButtonClass}
-                        disabled={step.loading}
-                        onClick={submit}
-                    >
-                        {step.continueLabel}
-                    </button>
-                </>
-            ) : null}
-        </div>
-    )
-}
 ```
 
 The browser check and `maxlength` are for the shopper's convenience; `save()` enforces the limit.

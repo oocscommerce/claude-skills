@@ -1,6 +1,6 @@
 ---
 name: provider
-description: Writes the PHP provider behind a Lynx PageBuilder component - a class extending OOCS\LynxComponent\Model\AbstractComponentProvider whose resolve() turns a node's saved settings into the props the Vue/React component renders (Magento data, translated `labels`, localized/image/url settings), with deferred()/deferredGroup()/optional() for loading after the page or on demand (the `lazy` toggle convention), full page cache tags through PageCacheIdentities, the Lynx Component Data cache, and SampleProviderInterface::resolveSample() for sample-data preview pages. Use when a developer says "load products/data into my Lynx component", "component provider", "translate labels for a Lynx component", "defer / lazy load a block", "page cache not refreshing for my block", or "sample data in the PageBuilder preview". Use with the basics and component skills.
+description: Writes the PHP provider behind a Lynx PageBuilder component - a class extending OOCS\LynxComponent\Model\AbstractComponentProvider whose resolve() turns a node's saved settings into the props the Vue component renders (Magento data, translated `labels`, localized/image/url settings), with deferred()/deferredGroup()/optional() for loading after the page or on demand (the `lazy` toggle convention), full page cache tags through PageCacheIdentities, the Lynx Component Data cache, and SampleProviderInterface::resolveSample() for sample-data preview pages. Use when a developer says "load products/data into my Lynx component", "component provider", "translate labels for a Lynx component", "defer / lazy load a block", "page cache not refreshing for my block", or "sample data in the PageBuilder preview". Use with the basics and component skills.
 ---
 # Lynx component provider
 
@@ -189,7 +189,7 @@ placeholder of about the final size meanwhile.
 
 The `lazy` convention ("Load when shown"): a toggle setting `lazy`, `optional()` returns `!empty($props['lazy'])`,
 and the component requests its data on mount while a prop `resolve()` always sets is `undefined`. Inside a Tab,
-"mount" is when the tab opens. Full Vue/React code in `reference/deferred-and-lazy.md`.
+"mount" is when the tab opens. Full code in `reference/deferred-and-lazy.md`.
 
 ### 6. Optional: sample data for preview pages
 
@@ -254,7 +254,7 @@ interface resolve normally with the admin browser's real session. Do not call `$
 1. After a `.graphqls` change: `bin/magento cache:clean lynx_component` (plus `lynx:compile components` when the site runs
    compiled) and `bin/magento lynx:static:deploy` for the types; after a constructor change in production mode,
    `setup:di:compile`. No `Lynx props: … dropped.` line in `system.log` (developer mode).
-2. Storefront: the component receives the resolved props (Vue/React devtools, or the Inertia page JSON in the HTML / the `X-Inertia` response of a visit).
+2. Storefront: the component receives the resolved props (Vue devtools, or the Inertia page JSON in the HTML / the `X-Inertia` response of a visit).
 3. Store view in another locale: localized settings and `labels` come out translated.
 4. Save an entity the block shows in the admin: the page refreshes (FPC tags work); check the deferred request too.
 5. Deferred: page HTML has the node without data, one follow-up request per group fills it; placeholder has no
@@ -264,7 +264,7 @@ interface resolve normally with the admin browser's real session. Do not call `$
 
 ## Reference
 
-- `reference/deferred-and-lazy.md` - full `lazy` example (provider, `.graphqls` toggle, Vue and React), deferred flow.
+- `reference/deferred-and-lazy.md` - full `lazy` example (provider, `.graphqls` toggle, Vue component), deferred flow.
 - `reference/provider-examples.md` - images/links/translations provider, catalog provider with cache tags,
   `ComponentCache` example, sample provider.
 - Skills: **basics**, **component**, **component-settings**.

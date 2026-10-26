@@ -2,7 +2,7 @@
 
 ## Store API
 
-`OOCS_LynxTheme/stores/global/analyticsStore` (`useAnalyticsStore()`, same API in Vue and React themes):
+`OOCS_LynxTheme/stores/global/analyticsStore` (`useAnalyticsStore()`):
 
 | Member | Meaning |
 |---|---|
@@ -60,8 +60,7 @@ app/code/Vendor/FooPixel/
 │   └── module.xml
 ├── Provider/FooPixel.php
 └── view/frontend/lynx/
-    ├── vue/src/Components/FooPixel.vue
-    └── react/src/Components/FooPixel.tsx
+    └── vue/src/Components/FooPixel.vue
 ```
 
 #### Declare the component
@@ -250,92 +249,6 @@ onUnmounted(() => {
         Foo Pixel · {{ pixel_id }}
     </div>
 </template>
-```
-
-```tsx
-import { useEffect } from 'react'
-import { useAnalyticsStore } from 'OOCS_LynxTheme/stores/global/analyticsStore'
-
-declare global {
-    interface Window {
-        foo?: ((...args: unknown[]) => void) & { queue?: unknown[] }
-    }
-}
-
-const INTERACTIONS = ['pointerdown', 'keydown', 'touchstart', 'scroll'] as const
-// PageBuilder previews the storefront in an iframe
-const inPreview = () =>
-    typeof window !== 'undefined' && (window.location.pathname.includes('/lynx_pagebuilder/') || window.parent !== window)
-
-// Lynx event name → the vendor's name and parameters
-const MAP: Record<string, (p: Record<string, any>) => [string, Record<string, unknown>]> = {
-    page_view: () => ['PageView', {}],
-    add_to_cart: p => ['AddToCart', { value: p.value, currency: p.currency, contents: p.items }],
-    purchase: p => ['Purchase', { order_id: p.transaction_id, value: p.value, currency: p.currency, contents: p.items }],
-}
-
-let instances = 0
-let stop: (() => void) | null = null
-let requested = false
-
-export default function FooPixel({ pixel_id, consent_cookies = '', ...events }: Lynx.VendorFooPixel) {
-    const analytics = useAnalyticsStore()
-
-    useEffect(() => {
-        if (inPreview() || !pixel_id || instances++ > 0) return
-
-        const cookieNames = consent_cookies.split(/\r?\n/).map(name => name.trim()).filter(Boolean)
-        const consentGiven = () => {
-            const present = new Set(
-                document.cookie
-                    .split(';')
-                    .map(part => part.trim())
-                    .filter(part => part.includes('=') && !part.endsWith('='))
-                    .map(part => part.slice(0, part.indexOf('=')))
-            )
-            return cookieNames.every(name => present.has(name))
-        }
-        const loadScript = () => {
-            if (requested || !consentGiven()) return
-            requested = true
-            const script = document.createElement('script')
-            script.src = 'https://cdn.foo.example/pixel.js'
-            script.async = true
-            document.head.appendChild(script)
-            for (const name of INTERACTIONS) document.removeEventListener(name, loadScript)
-        }
-        const send = (event: string, params: Record<string, unknown>) => {
-            if (!MAP[event] || !(events[`event_${event}` as keyof typeof events] ?? true)) return
-            window.foo!('track', ...MAP[event](params))
-        }
-
-        // The vendor's stub: calls queue up until the script replaces it
-        window.foo ||= Object.assign((...args: unknown[]) => window.foo!.queue!.push(args), { queue: [] })
-        window.foo('init', pixel_id)
-
-        analytics.addTracker(send)
-        for (const name of INTERACTIONS) document.addEventListener(name, loadScript, { passive: true })
-        stop = () => {
-            analytics.removeTracker(send)
-            for (const name of INTERACTIONS) document.removeEventListener(name, loadScript)
-        }
-
-        return () => {
-            if (--instances > 0) return
-            stop?.()
-            stop = null
-        }
-        // Mount and unmount only: the settings do not change under a placed node
-    }, [])
-
-    if (!inPreview()) return null
-
-    return (
-        <div className="rounded-box border-(length:--border) border-dashed border-base-300 px-3 py-2 text-sm text-base-content/70">
-            Foo Pixel · {pixel_id}
-        </div>
-    )
-}
 ```
 
 Points to keep from this example:
